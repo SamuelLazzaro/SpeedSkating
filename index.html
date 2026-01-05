@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gara a Punti - Pattinaggio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- ========== CONFIGURATION SCREEN ========== -->
+    <div id="configScreen">
+        <div class="config-card">
+            <h1>🛼 Gara a Punti - Pattinaggio</h1>
+            
+            <div class="form-group">
+                <label for="totalLaps">Numero totale di giri</label>
+                <input type="number" id="totalLaps" min="1" placeholder="Es: 10" value="10">
+            </div>
+
+            <div class="form-group">
+                <label>Frequenza traguardi a punti</label>
+                <div class="toggle-group">
+                    <button type="button" class="toggle-btn active" data-frequency="every_lap">
+                        Ogni giro
+                    </button>
+                    <button type="button" class="toggle-btn" data-frequency="every_2_laps">
+                        Ogni 2 giri
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" class="btn-primary" id="btnStartConfig">
+                Conferma e vai alla gara
+            </button>
+        </div>
+    </div>
+
+    <!-- ========== RACE SCREEN ========== -->
+    <div id="raceScreen" class="hidden">
+        <!-- Header -->
+        <div class="race-header">
+            <div class="race-header-content">
+                <div class="race-title">🛼 Gara a Punti - Pattinaggio</div>
+                <div class="race-badges">
+                    <div class="badge" id="badgeConfig">-</div>
+                    <div class="badge highlight" id="badgeLaps">Giri rimanenti: -</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="race-controls">
+            <button type="button" class="btn-control btn-start" id="btnStartRace">
+                ▶️ Start Gara
+            </button>
+            <button type="button" class="btn-control btn-end hidden" id="btnEndRace">
+                🏁 Fine Gara
+            </button>
+            <button type="button" class="btn-control btn-keyboard hidden" id="btnOpenKeyboard">
+                ⌨️ Apri Tastiera
+            </button>
+            <button type="button" class="btn-control btn-undo hidden" id="btnUndo">
+                ↩️ Undo Ultimo
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="race-content">
+            <!-- Leaderboard -->
+            <div class="leaderboard">
+                <div class="leaderboard-header">
+                    📊 Classifica in Tempo Reale
+                </div>
+                <div id="leaderboardContent">
+                    <div class="empty-leaderboard">
+                        <div class="empty-leaderboard-icon">🏆</div>
+                        <p>Nessun atleta in classifica</p>
+                        <p style="font-size: 14px; margin-top: 8px;">Premi "Start Gara" per iniziare</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ATHLETE MENU (Context Menu) ========== -->
+    <div id="athleteMenu" class="athlete-menu hidden"></div>
+
+    <!-- ========== KEYBOARD OVERLAY ========== -->
+    <div id="keyboardOverlay" class="keyboard-overlay hidden">
+        <div class="keyboard-modal">
+            <div class="keyboard-header">
+                <h3>⌨️ Inserisci Numero Atleta</h3>
+                <button type="button" class="btn-close-keyboard" id="btnCloseKeyboard">
+                    ✕ Chiudi
+                </button>
+            </div>
+            <div class="keyboard-body">
+                <div class="keyboard-display">
+                    <div id="keyboardDisplay">
+                        <span class="keyboard-display-placeholder">Digita il numero...</span>
+                    </div>
+                </div>
+
+                <div class="keyboard-grid">
+                    <button type="button" class="keyboard-key" data-key="1">1</button>
+                    <button type="button" class="keyboard-key" data-key="2">2</button>
+                    <button type="button" class="keyboard-key" data-key="3">3</button>
+                    <button type="button" class="keyboard-key" data-key="4">4</button>
+                    <button type="button" class="keyboard-key" data-key="5">5</button>
+                    <button type="button" class="keyboard-key" data-key="6">6</button>
+                    <button type="button" class="keyboard-key" data-key="7">7</button>
+                    <button type="button" class="keyboard-key" data-key="8">8</button>
+                    <button type="button" class="keyboard-key" data-key="9">9</button>
+                    <button type="button" class="keyboard-key key-clear" data-key="C">C</button>
+                    <button type="button" class="keyboard-key" data-key="0">0</button>
+                    <button type="button" class="keyboard-key" data-key="backspace">⌫</button>
+                </div>
+
+                <div class="keyboard-points">
+                    <div class="keyboard-points-title">Assegna Punti Traguardo</div>
+                    <div class="keyboard-points-grid" id="keyboardPointsGrid">
+                        <!-- Buttons will be dynamically generated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== DIALOGS ========== -->
+    <div id="dialogOverlay" class="dialog-overlay hidden">
+        <div class="dialog-box">
+            <div class="dialog-icon" id="dialogIcon">⚠️</div>
+            <div class="dialog-title" id="dialogTitle">Conferma</div>
+            <div class="dialog-message" id="dialogMessage">Sei sicuro?</div>
+            <div class="dialog-buttons">
+                <button type="button" class="dialog-btn dialog-btn-cancel" id="dialogCancel">
+                    Annulla
+                </button>
+                <button type="button" class="dialog-btn dialog-btn-confirm" id="dialogConfirm">
+                    Conferma
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
