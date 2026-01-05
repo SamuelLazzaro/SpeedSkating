@@ -455,10 +455,12 @@ input:focus {
     background: var(--color-bg-main);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-lg);
-    max-width: 500px;
+    max-width: min(600px, 95vw);
     width: 100%;
     max-height: 90vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .keyboard-header {
@@ -484,45 +486,58 @@ input:focus {
 }
 
 .keyboard-body {
-    padding: 20px;
+    padding: clamp(12px, 3vh, 20px);
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 100%;
 }
 
 .keyboard-display {
     background: var(--color-bg-secondary);
-    padding: 20px;
+    padding: clamp(12px, 2.5vh, 20px);
     border-radius: var(--border-radius);
-    margin-bottom: 20px;
-    min-height: 60px;
+    margin-bottom: clamp(12px, 2vh, 20px);
+    min-height: clamp(45px, 7vh, 60px);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 500px;
 }
 
 .keyboard-display-number {
-    font-size: 36px;
+    font-size: clamp(24px, 5vh, 36px);
     font-weight: 700;
     color: var(--color-primary);
 }
 
 .keyboard-display-placeholder {
-    font-size: 18px;
+    font-size: clamp(14px, 3vh, 18px);
     color: var(--color-text-secondary);
 }
 
 .keyboard-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: clamp(8px, 2vw, 14px);
+    margin-bottom: clamp(12px, 2vh, 16px);
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 500px;
 }
 
 .keyboard-key {
-    aspect-ratio: 1;
-    padding: 20px;
+    padding: 0;
+    min-height: clamp(50px, 9vh, 75px);
+    height: clamp(50px, 9vh, 75px);
     background: var(--color-bg-secondary);
     border: 2px solid var(--color-border);
     border-radius: var(--border-radius);
-    font-size: 24px;
+    font-size: clamp(18px, 4vw, 26px);
     font-weight: 700;
     color: var(--color-text-primary);
     display: flex;
@@ -543,29 +558,35 @@ input:focus {
 }
 
 .keyboard-points {
-    margin-top: 20px;
+    margin-top: clamp(10px, 1.5vh, 16px);
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 500px;
 }
 
 .keyboard-points-title {
-    font-size: 14px;
+    font-size: clamp(11px, 2.5vh, 14px);
     font-weight: 600;
     color: var(--color-text-secondary);
     text-transform: uppercase;
-    margin-bottom: 12px;
+    margin-bottom: clamp(8px, 1.5vh, 12px);
+    text-align: center;
 }
 
 .keyboard-points-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: clamp(8px, 2vw, 14px);
 }
 
 .keyboard-points-btn {
-    padding: 16px;
+    padding: clamp(12px, 2.5vh, 16px);
+    min-height: clamp(45px, 7vh, 60px);
+    height: clamp(45px, 7vh, 60px);
     background: var(--color-success);
     color: var(--color-text-inverse);
     border-radius: var(--border-radius);
-    font-size: 20px;
+    font-size: clamp(16px, 3.5vw, 22px);
     font-weight: 700;
     box-shadow: var(--shadow-sm);
 }
@@ -686,12 +707,54 @@ input:focus {
         font-size: 16px;
     }
 
+    .keyboard-overlay {
+        padding: 10px;
+    }
+
     .keyboard-modal {
         max-width: 100%;
+        max-height: 95vh;
+    }
+
+    .keyboard-body {
+        padding: clamp(10px, 2vh, 15px);
+    }
+
+    .keyboard-display {
+        padding: clamp(10px, 2vh, 15px);
+        min-height: clamp(40px, 6vh, 50px);
+        margin-bottom: clamp(10px, 1.5vh, 15px);
+    }
+
+    .keyboard-grid {
+        gap: clamp(5px, 1vw, 8px);
+        margin-bottom: clamp(10px, 1.5vh, 14px);
     }
 
     .keyboard-key {
-        font-size: 20px;
+        min-height: clamp(40px, 7vh, 60px);
+        max-height: clamp(50px, 9vh, 70px);
+        font-size: clamp(14px, 3vw, 18px);
+    }
+
+    .keyboard-points {
+        margin-top: clamp(8px, 1vh, 12px);
+    }
+
+    .keyboard-points-title {
+        font-size: clamp(10px, 2vh, 12px);
+        margin-bottom: clamp(6px, 1vh, 10px);
+    }
+
+    .keyboard-points-grid {
+        gap: clamp(5px, 1vw, 8px);
+    }
+
+    .keyboard-points-btn {
+        padding: clamp(8px, 1.5vh, 12px);
+        min-height: clamp(38px, 5.5vh, 50px);
+        max-height: clamp(45px, 7vh, 55px);
+        font-size: clamp(13px, 2.5vw, 16px);
     }
 }
 
@@ -720,12 +783,57 @@ input:focus {
         font-size: 13px;
     }
 
+    .keyboard-overlay {
+        padding: 5px;
+    }
+
+    .keyboard-body {
+        padding: clamp(8px, 1.5vh, 12px);
+    }
+
+    .keyboard-display {
+        padding: clamp(8px, 1.5vh, 12px);
+        min-height: clamp(35px, 5vh, 45px);
+        margin-bottom: clamp(8px, 1vh, 12px);
+    }
+
     .keyboard-display-number {
-        font-size: 28px;
+        font-size: clamp(20px, 4vh, 26px);
+    }
+
+    .keyboard-display-placeholder {
+        font-size: clamp(12px, 2.5vh, 15px);
+    }
+
+    .keyboard-grid {
+        gap: clamp(4px, 0.8vw, 6px);
+        margin-bottom: clamp(8px, 1vh, 12px);
     }
 
     .keyboard-key {
-        padding: 16px;
-        font-size: 18px;
+        min-height: clamp(38px, 6.5vh, 55px);
+        max-height: clamp(45px, 8vh, 60px);
+        font-size: clamp(13px, 2.5vw, 16px);
+        border-width: 1.5px;
+    }
+
+    .keyboard-points {
+        margin-top: clamp(6px, 0.8vh, 10px);
+    }
+
+    .keyboard-points-title {
+        font-size: clamp(9px, 1.8vh, 11px);
+        margin-bottom: clamp(5px, 0.8vh, 8px);
+    }
+
+    .keyboard-points-grid {
+        gap: clamp(4px, 0.8vw, 6px);
+    }
+
+    .keyboard-points-btn {
+        padding: clamp(8px, 1.2vh, 10px);
+        min-height: clamp(35px, 5vh, 45px);
+        max-height: clamp(40px, 6vh, 50px);
+        font-size: clamp(12px, 2vw, 14px);
     }
 }

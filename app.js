@@ -788,7 +788,7 @@ btnCloseKeyboard.addEventListener('click', closeKeyboard);
 document.querySelectorAll('.keyboard-key').forEach(key => {
     key.addEventListener('click', () => {
         const value = key.dataset.key;
-        
+
         if (value === 'C') {
             currentKeyboardNumber = '';
         } else if (value === 'backspace') {
@@ -796,8 +796,9 @@ document.querySelectorAll('.keyboard-key').forEach(key => {
         } else {
             currentKeyboardNumber += value;
         }
-        
+
         updateKeyboardDisplay();
+        updateKeyboardPoints();
     });
 });
 
