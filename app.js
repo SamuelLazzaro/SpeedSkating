@@ -513,80 +513,87 @@ function showAthleteMenu(athleteNumber, event) {
     currentMenuAthlete = athleteNumber;
     const athlete = state.athletes.get(athleteNumber);
 
-    let menuHTML = `
-        <div class="menu-header">
-            <span>Atleta #${athleteNumber}</span>
-            <button type="button" class="menu-close" id="menuCloseBtn">✕</button>
-        </div>
-    `;
-
-    // Determine available options based on athlete status
-    if (athlete.status === 'normal') {
-        // Normal athlete - all options available
-        menuHTML += `
-            <button type="button" class="menu-item" data-action="assign-points">
-                <span class="menu-item-icon">🎯</span>
-                <span>Assegna punti traguardo</span>
-            </button>
-            <div class="menu-divider"></div>
-            <button type="button" class="menu-item" data-action="modify-points">
-                <span class="menu-item-icon">✏️</span>
-                <span>Modifica punti liberi</span>
-            </button>
-            <div class="menu-divider"></div>
-            <button type="button" class="menu-item" data-action="lap">
-                <span class="menu-item-icon">🔄</span>
-                <span>Doppia</span>
-            </button>
-            <button type="button" class="menu-item" data-action="disqualify">
-                <span class="menu-item-icon">❌</span>
-                <span>Squalifica</span>
-            </button>
-        `;
-    } else if (athlete.status === 'lapped') {
-        // Lapped athlete - only unlap and disqualify
-        menuHTML += `
-            <button type="button" class="menu-item" data-action="unlap">
-                <span class="menu-item-icon">♻️</span>
-                <span>Sdoppia</span>
-            </button>
-            <button type="button" class="menu-item" data-action="disqualify">
-                <span class="menu-item-icon">❌</span>
-                <span>Squalifica</span>
-            </button>
-        `;
-    } else if (athlete.status === 'disqualified') {
-        // Disqualified athlete - only reinstate
-        menuHTML += `
-            <button type="button" class="menu-item" data-action="reinstate">
-                <span class="menu-item-icon">♻️</span>
-                <span>Riabilita</span>
-            </button>
-        `;
+    // Remove any existing submenu
+    const existingSubmenu = athleteMenu.querySelector('.submenu');
+    if (existingSubmenu) {
+        existingSubmenu.remove();
     }
 
-    athleteMenu.innerHTML = menuHTML;
-    athleteMenu.classList.remove('hidden');
+    // Update athlete number in header
+    document.getElementById('athleteMenuNumber').textContent = `Atleta #${athleteNumber}`;
 
-    // Position menu near click
-    positionMenu(event);
+    // Get menu items
+    const menuAssignPoints = document.getElementById('menuAssignPoints');
+    const menuModifyPoints = document.getElementById('menuModifyPoints');
+    const menuLap = document.getElementById('menuLap');
+    const menuUnlap = document.getElementById('menuUnlap');
+    const menuDisqualify = document.getElementById('menuDisqualify');
+    const menuReinstate = document.getElementById('menuReinstate');
+    const menuDivider1 = document.getElementById('menuDivider1');
+    const menuDivider2 = document.getElementById('menuDivider2');
 
-    // Add event listeners
-    athleteMenu.querySelectorAll('.menu-item').forEach(item => {
+    // Remove old listeners by cloning all menu items
+    [menuAssignPoints, menuModifyPoints, menuLap, menuUnlap, menuDisqualify, menuReinstate].forEach(item => {
+        const newItem = item.cloneNode(true);
+        item.parentNode.replaceChild(newItem, item);
+    });
+
+    // Get the new cloned elements
+    const newMenuAssignPoints = document.getElementById('menuAssignPoints');
+    const newMenuModifyPoints = document.getElementById('menuModifyPoints');
+    const newMenuLap = document.getElementById('menuLap');
+    const newMenuUnlap = document.getElementById('menuUnlap');
+    const newMenuDisqualify = document.getElementById('menuDisqualify');
+    const newMenuReinstate = document.getElementById('menuReinstate');
+
+    // Hide all items first
+    newMenuAssignPoints.classList.add('hidden');
+    newMenuModifyPoints.classList.add('hidden');
+    newMenuLap.classList.add('hidden');
+    newMenuUnlap.classList.add('hidden');
+    newMenuDisqualify.classList.add('hidden');
+    newMenuReinstate.classList.add('hidden');
+    menuDivider1.classList.add('hidden');
+    menuDivider2.classList.add('hidden');
+
+    // Show items based on athlete status
+    if (athlete.status === 'normal') {
+        newMenuAssignPoints.classList.remove('hidden');
+        newMenuModifyPoints.classList.remove('hidden');
+        newMenuLap.classList.remove('hidden');
+        newMenuDisqualify.classList.remove('hidden');
+        menuDivider1.classList.remove('hidden');
+        menuDivider2.classList.remove('hidden');
+    } else if (athlete.status === 'lapped') {
+        newMenuUnlap.classList.remove('hidden');
+        newMenuDisqualify.classList.remove('hidden');
+    } else if (athlete.status === 'disqualified') {
+        newMenuReinstate.classList.remove('hidden');
+    }
+
+    // Add event listeners to visible items
+    athleteMenu.querySelectorAll('.menu-item:not(.hidden)').forEach(item => {
         item.addEventListener('click', (e) => {
             e.stopPropagation();
             handleMenuAction(item.dataset.action);
         });
     });
 
-    // Add close button listener
+    // Clone and replace close button to remove old listeners
     const closeBtn = document.getElementById('menuCloseBtn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeAthleteMenu();
-        });
-    }
+    const newCloseBtn = closeBtn.cloneNode(true);
+    closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+    // Add new close button listener
+    document.getElementById('menuCloseBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAthleteMenu();
+    });
+
+    athleteMenu.classList.remove('hidden');
+
+    // Position menu
+    positionMenu(event);
 }
 
 function positionMenu(event) {
@@ -635,66 +642,95 @@ function handleMenuAction(action) {
 
 function showAssignPointsSubmenu(athleteNumber) {
     const points = state.currentCheckpoint.availablePoints;
-    
-    let submenuHTML = `
-        <div class="submenu">
-            <div class="submenu-title">Assegna Punti Traguardo</div>
-            <div class="submenu-buttons">
-    `;
-    
+
+    // Remove any existing submenu
+    const existingSubmenu = athleteMenu.querySelector('.submenu');
+    if (existingSubmenu) {
+        existingSubmenu.remove();
+    }
+
+    // Create submenu element
+    const submenu = document.createElement('div');
+    submenu.className = 'submenu';
+
+    // Create title
+    const title = document.createElement('div');
+    title.className = 'submenu-title';
+    title.textContent = 'Assegna Punti Traguardo';
+    submenu.appendChild(title);
+
+    // Create buttons container
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'submenu-buttons';
+
+    // Create buttons
     [3, 2, 1].forEach(p => {
         const disabled = !points.includes(p);
-        submenuHTML += `
-            <button type="button" class="submenu-btn" data-points="${p}" ${disabled ? 'disabled' : ''}>
-                +${p}
-            </button>
-        `;
-    });
-    
-    submenuHTML += `
-            </div>
-        </div>
-    `;
-    
-    athleteMenu.innerHTML += submenuHTML;
-    
-    // Add event listeners
-    athleteMenu.querySelectorAll('.submenu-btn').forEach(btn => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'submenu-btn';
+        btn.dataset.points = p;
+        btn.textContent = `+${p}`;
+        btn.disabled = disabled;
+
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const points = parseInt(btn.dataset.points);
-            assignPointsToAthlete(athleteNumber, points);
+            assignPointsToAthlete(athleteNumber, p);
             closeAthleteMenu();
         });
+
+        buttonsContainer.appendChild(btn);
     });
+
+    submenu.appendChild(buttonsContainer);
+
+    // Append submenu to athleteMenu
+    athleteMenu.appendChild(submenu);
 }
 
 function showModifyPointsSubmenu(athleteNumber) {
-    let submenuHTML = `
-        <div class="submenu">
-            <div class="submenu-title">Modifica Punti (indipendente dai giri)</div>
-            <div class="submenu-buttons">
-                <button type="button" class="submenu-btn" data-modify="+1">+1</button>
-                <button type="button" class="submenu-btn" data-modify="+2">+2</button>
-                <button type="button" class="submenu-btn" data-modify="+3">+3</button>
-                <button type="button" class="submenu-btn" data-modify="-1">-1</button>
-                <button type="button" class="submenu-btn" data-modify="-2">-2</button>
-                <button type="button" class="submenu-btn" data-modify="-3">-3</button>
-            </div>
-        </div>
-    `;
-    
-    athleteMenu.innerHTML += submenuHTML;
-    
-    // Add event listeners
-    athleteMenu.querySelectorAll('.submenu-btn').forEach(btn => {
+    // Remove any existing submenu
+    const existingSubmenu = athleteMenu.querySelector('.submenu');
+    if (existingSubmenu) {
+        existingSubmenu.remove();
+    }
+
+    // Create submenu element
+    const submenu = document.createElement('div');
+    submenu.className = 'submenu';
+
+    // Create title
+    const title = document.createElement('div');
+    title.className = 'submenu-title';
+    title.textContent = 'Modifica Punti (indipendente dai giri)';
+    submenu.appendChild(title);
+
+    // Create buttons container
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'submenu-buttons';
+
+    // Create buttons
+    ['+1', '+2', '+3', '-1', '-2', '-3'].forEach(modifyValue => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'submenu-btn';
+        btn.dataset.modify = modifyValue;
+        btn.textContent = modifyValue;
+
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const modify = parseInt(btn.dataset.modify);
+            const modify = parseInt(modifyValue);
             modifyAthletePointsFree(athleteNumber, modify);
             closeAthleteMenu();
         });
+
+        buttonsContainer.appendChild(btn);
     });
+
+    submenu.appendChild(buttonsContainer);
+
+    // Append submenu to athleteMenu
+    athleteMenu.appendChild(submenu);
 }
 
 function modifyAthletePointsFree(athleteNumber, pointsChange) {
@@ -803,30 +839,34 @@ function updateKeyboardDisplay() {
 
 function updateKeyboardPoints() {
     const points = state.currentCheckpoint.availablePoints;
-    
-    let html = '';
-    [3, 2, 1].forEach(p => {
-        const disabled = !points.includes(p);
-        html += `
-            <button type="button" class="keyboard-points-btn" data-points="${p}" ${disabled ? 'disabled' : ''}>
-                +${p}
-            </button>
-        `;
+
+    // Get button elements
+    const btnPoints3 = document.getElementById('btnPoints3');
+    const btnPoints2 = document.getElementById('btnPoints2');
+    const btnPoints1 = document.getElementById('btnPoints1');
+
+    // Enable/disable buttons based on available points
+    btnPoints3.disabled = !points.includes(3);
+    btnPoints2.disabled = !points.includes(2);
+    btnPoints1.disabled = !points.includes(1);
+
+    // Add event listeners - mantengo i listener dinamici per compatibilità
+    keyboardPointsGrid.querySelectorAll('.keyboard-points-btn').forEach(btn => {
+        // Remove old listeners by cloning
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
     });
-    
-    keyboardPointsGrid.innerHTML = html;
-    
-    // Add event listeners
+
     keyboardPointsGrid.querySelectorAll('.keyboard-points-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (currentKeyboardNumber === '') {
                 alert('❌ Digita prima il numero dell\'atleta');
                 return;
             }
-            
+
             const athleteNumber = parseInt(currentKeyboardNumber);
             const points = parseInt(btn.dataset.points);
-            
+
             if (assignPointsToAthlete(athleteNumber, points)) {
                 currentKeyboardNumber = '';
                 updateKeyboardDisplay();

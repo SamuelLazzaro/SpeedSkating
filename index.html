@@ -86,7 +86,52 @@
     </div>
 
     <!-- ========== ATHLETE MENU (Context Menu) ========== -->
-    <div id="athleteMenu" class="athlete-menu hidden"></div>
+    <div id="athleteMenu" class="athlete-menu hidden">
+        <div class="menu-header">
+            <span id="athleteMenuNumber">Atleta #0</span>
+            <button type="button" class="menu-close" id="menuCloseBtn">✕</button>
+        </div>
+
+        <!-- Assign checkpoint points -->
+        <button type="button" class="menu-item" id="menuAssignPoints" data-action="assign-points">
+            <span class="menu-item-icon">🎯</span>
+            <span>Assegna punti traguardo</span>
+        </button>
+
+        <div class="menu-divider" id="menuDivider1"></div>
+
+        <!-- Modify free points -->
+        <button type="button" class="menu-item" id="menuModifyPoints" data-action="modify-points">
+            <span class="menu-item-icon">✏️</span>
+            <span>Modifica punti liberi</span>
+        </button>
+
+        <div class="menu-divider" id="menuDivider2"></div>
+
+        <!-- Lap athlete -->
+        <button type="button" class="menu-item" id="menuLap" data-action="lap">
+            <span class="menu-item-icon">🔄</span>
+            <span>Doppia</span>
+        </button>
+
+        <!-- Unlap athlete -->
+        <button type="button" class="menu-item hidden" id="menuUnlap" data-action="unlap">
+            <span class="menu-item-icon">♻️</span>
+            <span>Sdoppia</span>
+        </button>
+
+        <!-- Disqualify athlete -->
+        <button type="button" class="menu-item" id="menuDisqualify" data-action="disqualify">
+            <span class="menu-item-icon">❌</span>
+            <span>Squalifica</span>
+        </button>
+
+        <!-- Reinstate athlete -->
+        <button type="button" class="menu-item hidden" id="menuReinstate" data-action="reinstate">
+            <span class="menu-item-icon">♻️</span>
+            <span>Riabilita</span>
+        </button>
+    </div>
 
     <!-- ========== KEYBOARD OVERLAY ========== -->
     <div id="keyboardOverlay" class="keyboard-overlay hidden">
@@ -120,7 +165,9 @@
                 <div class="keyboard-points">
                     <div class="keyboard-points-title">Assegna Punti Traguardo</div>
                     <div class="keyboard-points-grid" id="keyboardPointsGrid">
-                        <!-- Buttons will be dynamically generated -->
+                        <button type="button" class="keyboard-points-btn" id="btnPoints3" data-points="3" disabled>+3</button>
+                        <button type="button" class="keyboard-points-btn" id="btnPoints2" data-points="2" disabled>+2</button>
+                        <button type="button" class="keyboard-points-btn" id="btnPoints1" data-points="1" disabled>+1</button>
                     </div>
                 </div>
             </div>
