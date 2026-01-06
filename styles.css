@@ -243,6 +243,11 @@ input:focus {
     color: var(--color-text-primary);
 }
 
+.btn-reset {
+    background: var(--color-danger);
+    color: var(--color-text-inverse);
+}
+
 /* ========== MAIN CONTENT AREA ========== */
 .race-content {
     flex: 1;

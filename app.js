@@ -141,6 +141,7 @@ const btnStartRace = document.getElementById('btnStartRace');
 const btnEndRace = document.getElementById('btnEndRace');
 const btnOpenKeyboard = document.getElementById('btnOpenKeyboard');
 const btnUndo = document.getElementById('btnUndo');
+const btnResetRace = document.getElementById('btnResetRace');
 const badgeConfig = document.getElementById('badgeConfig');
 const badgeLaps = document.getElementById('badgeLaps');
 const leaderboardContent = document.getElementById('leaderboardContent');
@@ -184,8 +185,57 @@ function endRace() {
     );
 }
 
+function resetRace() {
+    showDialog(
+        '🔄',
+        'Riavviare la Gara?',
+        'Tutti i dati della gara verranno cancellati e tornerai alla schermata di configurazione. Questa azione non può essere annullata. Vuoi continuare?',
+        () => {
+            // Clear localStorage
+            clearLocalStorage();
+
+            // Reset all state
+            state.config.totalLaps = 0;
+            state.config.pointsFrequency = 'every_lap';
+            state.raceStarted = false;
+            state.raceEnded = false;
+            state.lapsRemaining = 0;
+            state.athletes.clear();
+            state.currentCheckpoint = {
+                number: 0,
+                assignedAthletes: [],
+                availablePoints: []
+            };
+            state.checkpointHistory = [];
+            state.actionLog = [];
+
+            // Reset UI
+            raceScreen.classList.add('hidden');
+            configScreen.classList.remove('hidden');
+
+            // Reset config screen inputs
+            totalLapsInput.value = '10';
+            toggleButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.frequency === 'every_lap') {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Hide all race buttons
+            btnStartRace.classList.remove('hidden');
+            btnEndRace.classList.add('hidden');
+            btnOpenKeyboard.classList.add('hidden');
+            btnUndo.classList.add('hidden');
+
+            console.log('Gara resettata completamente');
+        }
+    );
+}
+
 btnStartRace.addEventListener('click', startRace);
 btnEndRace.addEventListener('click', endRace);
+btnResetRace.addEventListener('click', resetRace);
 
 // ========== CHECKPOINT MANAGEMENT ==========
 function initializeCheckpoint() {
