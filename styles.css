@@ -210,17 +210,26 @@ input:focus {
     background: var(--color-bg-main);
     padding: 16px 20px;
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: clamp(4px, 1vw, 12px);
+    flex-wrap: nowrap;
     box-shadow: var(--shadow-sm);
+    overflow-x: auto;
 }
 
 .btn-control {
-    min-width: 120px;
-    padding: 14px 24px;
+    flex: 1 1 auto;
+    min-width: clamp(80px, 15vw, 140px);
+    max-width: 180px;
+    padding: clamp(10px, 2vh, 14px) clamp(8px, 1.5vw, 16px);
     border-radius: var(--border-radius);
     font-weight: 600;
+    font-size: clamp(12px, 3vw, 16px);
     box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .btn-start {
@@ -359,10 +368,43 @@ input:focus {
     background: var(--color-bg-main);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-lg);
-    padding: 8px;
+    padding: 0;
     z-index: 1000;
     min-width: 250px;
     max-width: 90vw;
+}
+
+.menu-header {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    padding: 16px 20px;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-close {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--color-text-inverse);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.menu-close:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .menu-item {
@@ -376,11 +418,16 @@ input:focus {
     align-items: center;
     gap: 12px;
     font-size: 16px;
-    margin-bottom: 4px;
+    margin: 0 8px 4px 8px;
+    width: calc(100% - 16px);
+}
+
+.menu-item:first-of-type {
+    margin-top: 8px;
 }
 
 .menu-item:last-child {
-    margin-bottom: 0;
+    margin-bottom: 8px;
 }
 
 .menu-item:hover:not(:disabled) {
@@ -488,6 +535,10 @@ input:focus {
     padding: 8px 16px;
     border-radius: 6px;
     font-weight: 600;
+}
+
+.btn-close-keyboard:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .keyboard-body {
@@ -763,6 +814,12 @@ input:focus {
     }
 }
 
+@media (max-width: 560px) {
+    .race-header-content {
+        justify-content: center;
+    }
+}
+
 @media (max-width: 480px) {
     .container {
         padding: 12px;
@@ -775,7 +832,6 @@ input:focus {
     .btn-control {
         min-width: 100px;
         padding: 12px 16px;
-        font-size: 14px;
     }
 
     .leaderboard-table th {

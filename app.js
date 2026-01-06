@@ -509,16 +509,21 @@ let currentMenuAthlete = null;
 
 function showAthleteMenu(athleteNumber, event) {
     if (state.raceEnded) return;
-    
+
     currentMenuAthlete = athleteNumber;
     const athlete = state.athletes.get(athleteNumber);
-    
-    let menuHTML = '';
-    
+
+    let menuHTML = `
+        <div class="menu-header">
+            <span>Atleta #${athleteNumber}</span>
+            <button type="button" class="menu-close" id="menuCloseBtn">✕</button>
+        </div>
+    `;
+
     // Determine available options based on athlete status
     if (athlete.status === 'normal') {
         // Normal athlete - all options available
-        menuHTML = `
+        menuHTML += `
             <button type="button" class="menu-item" data-action="assign-points">
                 <span class="menu-item-icon">🎯</span>
                 <span>Assegna punti traguardo</span>
@@ -540,7 +545,7 @@ function showAthleteMenu(athleteNumber, event) {
         `;
     } else if (athlete.status === 'lapped') {
         // Lapped athlete - only unlap and disqualify
-        menuHTML = `
+        menuHTML += `
             <button type="button" class="menu-item" data-action="unlap">
                 <span class="menu-item-icon">♻️</span>
                 <span>Sdoppia</span>
@@ -552,20 +557,20 @@ function showAthleteMenu(athleteNumber, event) {
         `;
     } else if (athlete.status === 'disqualified') {
         // Disqualified athlete - only reinstate
-        menuHTML = `
+        menuHTML += `
             <button type="button" class="menu-item" data-action="reinstate">
                 <span class="menu-item-icon">♻️</span>
                 <span>Riabilita</span>
             </button>
         `;
     }
-    
+
     athleteMenu.innerHTML = menuHTML;
     athleteMenu.classList.remove('hidden');
-    
+
     // Position menu near click
     positionMenu(event);
-    
+
     // Add event listeners
     athleteMenu.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', (e) => {
@@ -573,25 +578,24 @@ function showAthleteMenu(athleteNumber, event) {
             handleMenuAction(item.dataset.action);
         });
     });
+
+    // Add close button listener
+    const closeBtn = document.getElementById('menuCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeAthleteMenu();
+        });
+    }
 }
 
 function positionMenu(event) {
-    const menuWidth = 250;
-    const menuHeight = 300;
-    
-    let left = event.clientX;
-    let top = event.clientY;
-    
-    // Adjust if menu would go off-screen
-    if (left + menuWidth > window.innerWidth) {
-        left = window.innerWidth - menuWidth - 10;
-    }
-    if (top + menuHeight > window.innerHeight) {
-        top = window.innerHeight - menuHeight - 10;
-    }
-    
-    athleteMenu.style.left = `${left}px`;
-    athleteMenu.style.top = `${top}px`;
+    // Center the menu in the viewport
+    athleteMenu.style.left = '50%';
+    athleteMenu.style.top = '50%';
+    athleteMenu.style.transform = 'translate(-50%, -50%)';
+    athleteMenu.style.maxHeight = `${Math.min(500, window.innerHeight - 40)}px`;
+    athleteMenu.style.overflowY = 'auto';
 }
 
 function closeAthleteMenu() {
