@@ -145,11 +145,60 @@ const btnResetRace = document.getElementById('btnResetRace');
 const badgeConfig = document.getElementById('badgeConfig');
 const badgeLaps = document.getElementById('badgeLaps');
 const leaderboardContent = document.getElementById('leaderboardContent');
+const lastCheckpointSummary = document.getElementById('lastCheckpointSummary');
 
 function updateRaceHeader() {
     const freqText = state.config.pointsFrequency === 'every_lap' ? 'Ogni giro' : 'Ogni 2 giri';
     badgeConfig.textContent = `${state.config.totalLaps} giri • ${freqText}`;
     badgeLaps.textContent = `Giri rimanenti: ${state.lapsRemaining}`;
+}
+
+function updateLastCheckpointSummary() {
+    if (!state.raceStarted || state.raceEnded) {
+        lastCheckpointSummary.classList.add('hidden');
+        return;
+    }
+
+    // Determine which checkpoint to show
+    let checkpointToShow = null;
+
+    // If current checkpoint has assigned athletes, show it
+    if (state.currentCheckpoint.assignedAthletes.length > 0) {
+        checkpointToShow = {
+            number: state.currentCheckpoint.number,
+            athletes: state.currentCheckpoint.assignedAthletes
+        };
+    }
+    // Otherwise, show the last checkpoint from history
+    else if (state.checkpointHistory.length > 0) {
+        const lastHistory = state.checkpointHistory[state.checkpointHistory.length - 1];
+        checkpointToShow = {
+            number: lastHistory.number,
+            athletes: lastHistory.athletes
+        };
+    }
+
+    // If no checkpoint to show, hide the summary
+    if (!checkpointToShow || checkpointToShow.athletes.length === 0) {
+        lastCheckpointSummary.classList.add('hidden');
+        return;
+    }
+
+    // Sort athletes by points (descending)
+    const sortedAthletes = [...checkpointToShow.athletes].sort((a, b) => b.points - a.points);
+
+    // Build HTML
+    let html = `<div class="last-checkpoint-summary-title">Ultimo traguardo ${checkpointToShow.number}:</div>`;
+    html += `<ul class="last-checkpoint-summary-list">`;
+
+    sortedAthletes.forEach(assignment => {
+        html += `<li class="last-checkpoint-summary-item">#${assignment.number}: ${assignment.points}pt</li>`;
+    });
+
+    html += `</ul>`;
+
+    lastCheckpointSummary.innerHTML = html;
+    lastCheckpointSummary.classList.remove('hidden');
 }
 
 function startRace() {
@@ -228,6 +277,10 @@ function resetRace() {
             btnOpenKeyboard.classList.add('hidden');
             btnUndo.classList.add('hidden');
 
+            // Hide last checkpoint summary
+            lastCheckpointSummary.classList.add('hidden');
+            lastCheckpointSummary.innerHTML = '';
+
             console.log('Gara resettata completamente');
         }
     );
@@ -296,24 +349,43 @@ function assignPointsToAthlete(athleteNumber, points) {
         return false;
     }
 
+    // Check if this is the first point assignment
+    const isFirstAssignment = state.currentCheckpoint.assignedAthletes.length === 0;
+
     // Assign points
     athlete.points += points;
-    
+
     // Track assignment
     state.currentCheckpoint.assignedAthletes.push({ number: athleteNumber, points });
-    
+
     // Remove from available points
     const index = state.currentCheckpoint.availablePoints.indexOf(points);
     state.currentCheckpoint.availablePoints.splice(index, 1);
-    
+
     logAction(`Assegnati ${points} punti a #${athleteNumber} (Checkpoint ${state.currentCheckpoint.number})`);
-    
+
+    // Save or update checkpoint in history
+    if (isFirstAssignment) {
+        // First assignment: create new history entry
+        state.checkpointHistory.push({
+            number: state.currentCheckpoint.number,
+            athletes: [...state.currentCheckpoint.assignedAthletes],
+            lapsBeforeDecrement: state.lapsRemaining
+        });
+        updateUndoButton();
+    } else {
+        // Subsequent assignments: update the last history entry
+        const lastHistory = state.checkpointHistory[state.checkpointHistory.length - 1];
+        lastHistory.athletes = [...state.currentCheckpoint.assignedAthletes];
+    }
+
     // Check if checkpoint is complete
     checkCheckpointCompletion();
-    
+
     renderLeaderboard();
     updateKeyboardPoints();
-    
+    updateLastCheckpointSummary();
+
     return true;
 }
 
@@ -328,39 +400,33 @@ function checkCheckpointCompletion() {
 }
 
 function completeCheckpoint() {
-    // Save checkpoint to history
-    state.checkpointHistory.push({
-        number: state.currentCheckpoint.number,
-        athletes: [...state.currentCheckpoint.assignedAthletes],
-        lapsBeforeDecrement: state.lapsRemaining
-    });
-    
     // Decrement laps
     const decrement = state.config.pointsFrequency === 'every_lap' ? 1 : 2;
     state.lapsRemaining -= decrement;
-    
+
     logAction(`Checkpoint ${state.currentCheckpoint.number} completato - Giri: ${state.lapsRemaining}`);
-    
+
     // Check if race should end
     if (state.lapsRemaining === 0) {
         btnEndRace.classList.remove('hidden');
     }
-    
+
     // Autosave
     saveToLocalStorage();
-    
+
     // Close keyboard and menu
     closeKeyboard();
     closeAthleteMenu();
-    
+
     // Initialize next checkpoint
     if (state.lapsRemaining > 0) {
         initializeCheckpoint();
     }
-    
+
     // Update UI
     updateRaceHeader();
     updateUndoButton();
+    updateLastCheckpointSummary();
     renderLeaderboard();
 }
 
@@ -410,6 +476,7 @@ function undoLastCheckpoint() {
             
             updateRaceHeader();
             updateUndoButton();
+            updateLastCheckpointSummary();
             renderLeaderboard();
         }
     );
@@ -736,13 +803,14 @@ function showModifyPointsSubmenu(athleteNumber) {
 function modifyAthletePointsFree(athleteNumber, pointsChange) {
     const athlete = state.athletes.get(athleteNumber);
     if (!athlete) return;
-    
+
     const newPoints = Math.max(0, athlete.points + pointsChange);
     athlete.points = newPoints;
-    
+
     logAction(`Modifica libera: ${pointsChange > 0 ? '+' : ''}${pointsChange} punti a #${athleteNumber} (totale: ${newPoints})`);
     saveToLocalStorage();
     renderLeaderboard();
+    updateLastCheckpointSummary();
 }
 
 function lapAthlete(athleteNumber) {
@@ -934,15 +1002,16 @@ if (loadFromLocalStorage()) {
     raceScreen.classList.remove('hidden');
     updateRaceHeader();
     renderLeaderboard();
-    
+
     if (state.raceStarted) {
         btnStartRace.classList.add('hidden');
         btnOpenKeyboard.classList.remove('hidden');
     }
-    
+
     if (state.lapsRemaining === 0 && !state.raceEnded) {
         btnEndRace.classList.remove('hidden');
     }
-    
+
     updateUndoButton();
+    updateLastCheckpointSummary();
 }
