@@ -511,6 +511,13 @@ input:focus {
     gap: 8px;
 }
 
+.submenu-buttons-edit-athlete {
+    display: flex;
+    justify-content: center;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
 .submenu-btn {
     padding: 12px;
     background: var(--color-bg-main);
@@ -528,6 +535,37 @@ input:focus {
 
 .submenu-btn:disabled {
     opacity: 0.3;
+}
+
+.submenu-btn-cancel {
+    background: #999999;
+    color: var(--color-text-inverse);
+    border-color: #999999;
+}
+
+.submenu-btn-cancel:hover:not(:disabled),
+.submenu-btn-cancel:active:not(:disabled) {
+    background: #FF3366;
+    border-color: #FF3366;
+    color: var(--color-text-inverse);
+}
+
+.submenu-btn-confirm {
+    background: #0066FF;
+    color: var(--color-text-inverse);
+    border-color: #0066FF;
+}
+
+.submenu-btn-confirm:hover:not(:disabled) {
+    background: #0052CC;
+    border-color: #0052CC;
+    color: var(--color-text-inverse);
+}
+
+.submenu-btn-confirm:active:not(:disabled) {
+    background: #003D99;
+    border-color: #003D99;
+    color: var(--color-text-inverse);
 }
 
 /* ========== KEYBOARD OVERLAY ========== */

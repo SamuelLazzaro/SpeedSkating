@@ -349,6 +349,21 @@ function assignPointsToAthlete(athleteNumber, points, name = '', surname = '') {
         state.athletes.set(athleteNumber, athlete);
         const nameDisplay = name || surname ? ` (${name} ${surname})`.trim() : '';
         logAction(`Atleta #${athleteNumber}${nameDisplay} aggiunto alla classifica`);
+    } else {
+        // Update name/surname if athlete exists but doesn't have them yet
+        if ((name && !athlete.name) || (surname && !athlete.surname)) {
+            const oldNameDisplay = athlete.name || athlete.surname ? ` (${athlete.name} ${athlete.surname})`.trim() : '';
+
+            if (name && !athlete.name) {
+                athlete.name = name;
+            }
+            if (surname && !athlete.surname) {
+                athlete.surname = surname;
+            }
+
+            const newNameDisplay = athlete.name || athlete.surname ? ` (${athlete.name} ${athlete.surname})`.trim() : '';
+            logAction(`Atleta #${athleteNumber}: aggiornato${oldNameDisplay} →${newNameDisplay}`);
+        }
     }
 
     // Check if disqualified
@@ -549,13 +564,13 @@ function renderLeaderboard() {
     // Sort athletes with tiebreaker logic
     const sortedAthletes = Array.from(state.athletes.values())
         .sort((a, b) => {
-            // First: lapped athletes go to bottom
-            if (a.status === 'lapped' && b.status !== 'lapped') return 1;
-            if (a.status !== 'lapped' && b.status === 'lapped') return -1;
-
-            // Second: disqualified athletes go to bottom
+            // First: disqualified athletes go to bottom (after lapped)
             if (a.status === 'disqualified' && b.status !== 'disqualified') return 1;
             if (a.status !== 'disqualified' && b.status === 'disqualified') return -1;
+
+            // Second: lapped athletes go after normal, before disqualified
+            if (a.status === 'lapped' && b.status !== 'lapped') return 1;
+            if (a.status !== 'lapped' && b.status === 'lapped') return -1;
 
             // Third: sort by total points (descending)
             if (b.points !== a.points) {
@@ -665,20 +680,26 @@ function showAthleteMenu(athleteNumber, event) {
     // Get menu items
     const menuAssignPointsSection = document.getElementById('menuAssignPointsSection');
     const menuModifyPoints = document.getElementById('menuModifyPoints');
+    const menuEditAthlete = document.getElementById('menuEditAthlete');
     const menuLap = document.getElementById('menuLap');
     const menuUnlap = document.getElementById('menuUnlap');
     const menuDisqualify = document.getElementById('menuDisqualify');
     const menuReinstate = document.getElementById('menuReinstate');
     const menuDivider2 = document.getElementById('menuDivider2');
 
+    // Hide edit athlete submenu if visible
+    const editSubmenu = document.getElementById('menuEditAthleteSubmenu');
+    editSubmenu.classList.add('hidden');
+
     // Remove old listeners by cloning all menu items
-    [menuModifyPoints, menuLap, menuUnlap, menuDisqualify, menuReinstate].forEach(item => {
+    [menuModifyPoints, menuEditAthlete, menuLap, menuUnlap, menuDisqualify, menuReinstate].forEach(item => {
         const newItem = item.cloneNode(true);
         item.parentNode.replaceChild(newItem, item);
     });
 
     // Get the new cloned elements
     const newMenuModifyPoints = document.getElementById('menuModifyPoints');
+    const newMenuEditAthlete = document.getElementById('menuEditAthlete');
     const newMenuLap = document.getElementById('menuLap');
     const newMenuUnlap = document.getElementById('menuUnlap');
     const newMenuDisqualify = document.getElementById('menuDisqualify');
@@ -687,6 +708,7 @@ function showAthleteMenu(athleteNumber, event) {
     // Hide all items first
     menuAssignPointsSection.classList.add('hidden');
     newMenuModifyPoints.classList.add('hidden');
+    newMenuEditAthlete.classList.add('hidden');
     newMenuLap.classList.add('hidden');
     newMenuUnlap.classList.add('hidden');
     newMenuDisqualify.classList.add('hidden');
@@ -697,13 +719,16 @@ function showAthleteMenu(athleteNumber, event) {
     if (athlete.status === 'normal') {
         menuAssignPointsSection.classList.remove('hidden');
         newMenuModifyPoints.classList.remove('hidden');
+        newMenuEditAthlete.classList.remove('hidden');
         newMenuLap.classList.remove('hidden');
         newMenuDisqualify.classList.remove('hidden');
         menuDivider2.classList.remove('hidden');
     } else if (athlete.status === 'lapped') {
+        newMenuEditAthlete.classList.remove('hidden');
         newMenuUnlap.classList.remove('hidden');
         newMenuDisqualify.classList.remove('hidden');
     } else if (athlete.status === 'disqualified') {
+        newMenuEditAthlete.classList.remove('hidden');
         newMenuReinstate.classList.remove('hidden');
     }
 
@@ -746,9 +771,15 @@ function positionMenu(event) {
 
 function closeAthleteMenu() {
     // Remove any dynamic submenu (modify points submenu)
-    const existingSubmenu = athleteMenu.querySelector('.submenu:not(#menuAssignPointsSection)');
+    const existingSubmenu = athleteMenu.querySelector('.submenu:not(#menuAssignPointsSection):not(#menuEditAthleteSubmenu)');
     if (existingSubmenu) {
         existingSubmenu.remove();
+    }
+
+    // Hide edit athlete submenu
+    const editSubmenu = document.getElementById('menuEditAthleteSubmenu');
+    if (editSubmenu) {
+        editSubmenu.classList.add('hidden');
     }
 
     athleteMenu.classList.add('hidden');
@@ -788,6 +819,9 @@ function handleMenuAction(action) {
     switch (action) {
         case 'modify-points':
             showModifyPointsSubmenu(athleteNumber);
+            break;
+        case 'edit-athlete':
+            showEditAthleteSubmenu(athleteNumber);
             break;
         case 'lap':
             lapAthlete(athleteNumber);
@@ -868,6 +902,136 @@ function modifyAthletePointsFree(athleteNumber, pointsChange) {
     saveToLocalStorage();
     renderLeaderboard();
     updateLastCheckpointSummary();
+}
+
+function showEditAthleteSubmenu(athleteNumber) {
+    const athlete = state.athletes.get(athleteNumber);
+    if (!athlete) return;
+
+    // Hide all menu items except the submenu
+    const menuItems = athleteMenu.querySelectorAll('.menu-item');
+    menuItems.forEach(item => item.classList.add('hidden'));
+
+    const menuDividers = athleteMenu.querySelectorAll('.menu-divider');
+    menuDividers.forEach(divider => divider.classList.add('hidden'));
+
+    const assignPointsSection = document.getElementById('menuAssignPointsSection');
+    assignPointsSection.classList.add('hidden');
+
+    // Show the edit athlete submenu
+    const editSubmenu = document.getElementById('menuEditAthleteSubmenu');
+    editSubmenu.classList.remove('hidden');
+
+    // Populate inputs with current athlete data
+    document.getElementById('editAthleteNumber').value = athlete.number;
+    document.getElementById('editAthleteName').value = athlete.name || '';
+    document.getElementById('editAthleteSurname').value = athlete.surname || '';
+
+    // Clone and replace buttons to remove old listeners
+    const btnConfirm = document.getElementById('btnConfirmEditAthlete');
+    const btnCancel = document.getElementById('btnCancelEditAthlete');
+
+    const newBtnConfirm = btnConfirm.cloneNode(true);
+    const newBtnCancel = btnCancel.cloneNode(true);
+
+    btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
+    btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
+
+    // Add event listeners to new buttons
+    document.getElementById('btnConfirmEditAthlete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        editAthlete(athleteNumber);
+    });
+
+    document.getElementById('btnCancelEditAthlete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAthleteMenu();
+    });
+}
+
+function editAthlete(originalAthleteNumber) {
+    const athlete = state.athletes.get(originalAthleteNumber);
+    if (!athlete) return;
+
+    // Get new values from inputs
+    const newNumberInput = document.getElementById('editAthleteNumber').value.trim();
+    const newName = document.getElementById('editAthleteName').value.trim();
+    const newSurname = document.getElementById('editAthleteSurname').value.trim();
+
+    // Validate number is not empty
+    if (!newNumberInput) {
+        showDialog('⚠️', 'Errore', 'Il numero atleta è obbligatorio.', true);
+        // Reset to original number
+        document.getElementById('editAthleteNumber').value = athlete.number;
+        return;
+    }
+
+    const newNumber = parseInt(newNumberInput);
+    if (isNaN(newNumber) || newNumber <= 0) {
+        showDialog('⚠️', 'Errore', 'Il numero atleta deve essere un valore positivo.', true);
+        // Reset to original number
+        document.getElementById('editAthleteNumber').value = athlete.number;
+        return;
+    }
+
+    // Check if new number already exists (and is different from original)
+    if (newNumber !== originalAthleteNumber && state.athletes.has(newNumber)) {
+        showDialog('⚠️', 'Errore', `Il numero #${newNumber} è già assegnato ad un altro atleta.`, true);
+        // Reset to original number
+        document.getElementById('editAthleteNumber').value = athlete.number;
+        return;
+    }
+
+    // Update athlete data
+    const oldDisplayName = athlete.name || athlete.surname ? ` (${athlete.name || ''} ${athlete.surname || ''})`.trim() : '';
+
+    athlete.name = newName || null;
+    athlete.surname = newSurname || null;
+
+    const newDisplayName = athlete.name || athlete.surname ? ` (${athlete.name || ''} ${athlete.surname || ''})`.trim() : '';
+
+    // If number changed, update Map and all references
+    if (newNumber !== originalAthleteNumber) {
+        athlete.number = newNumber;
+
+        // Update athletes Map
+        state.athletes.delete(originalAthleteNumber);
+        state.athletes.set(newNumber, athlete);
+
+        // Update checkpointHistory
+        state.checkpointHistory.forEach(checkpoint => {
+            checkpoint.athletes.forEach(assignment => {
+                if (assignment.number === originalAthleteNumber) {
+                    assignment.number = newNumber;
+                }
+            });
+        });
+
+        // Update currentCheckpoint
+        state.currentCheckpoint.assignedAthletes.forEach(assignment => {
+            if (assignment.number === originalAthleteNumber) {
+                assignment.number = newNumber;
+            }
+        });
+
+        logAction(`Atleta #${originalAthleteNumber}${oldDisplayName} modificato → #${newNumber}${newDisplayName}`);
+
+        // Update currentMenuAthlete to the new number
+        currentMenuAthlete = newNumber;
+
+        // Update menu header
+        document.getElementById('athleteMenuNumber').textContent = `Atleta #${newNumber}`;
+    } else {
+        // Only name/surname changed
+        if (oldDisplayName !== newDisplayName) {
+            logAction(`Atleta #${originalAthleteNumber}${oldDisplayName} modificato →${newDisplayName}`);
+        }
+    }
+
+    saveToLocalStorage();
+    renderLeaderboard();
+    updateLastCheckpointSummary();
+    closeAthleteMenu();
 }
 
 function lapAthlete(athleteNumber) {
@@ -1013,11 +1177,29 @@ function updateKeyboardPoints() {
 btnOpenKeyboard.addEventListener('click', openKeyboard);
 btnCloseKeyboard.addEventListener('click', closeKeyboard);
 
-// Prevent non-numeric input in number field
+// Prevent non-numeric input in number field and auto-fill name/surname
 inputAthleteNumber.addEventListener('input', (e) => {
     // Remove any non-numeric characters
     e.target.value = e.target.value.replace(/[^0-9]/g, '');
     updateKeyboardPointsButtons();
+
+    // Auto-fill name and surname if athlete exists
+    const athleteNumber = parseInt(e.target.value);
+    if (!isNaN(athleteNumber) && athleteNumber > 0) {
+        const athlete = state.athletes.get(athleteNumber);
+        if (athlete) {
+            inputAthleteName.value = athlete.name || '';
+            inputAthleteSurname.value = athlete.surname || '';
+        } else {
+            // Clear fields if athlete doesn't exist
+            inputAthleteName.value = '';
+            inputAthleteSurname.value = '';
+        }
+    } else {
+        // Clear fields if number is not valid
+        inputAthleteName.value = '';
+        inputAthleteSurname.value = '';
+    }
 });
 
 inputAthleteNumber.addEventListener('keypress', (e) => {
@@ -1123,8 +1305,9 @@ function exportToPDF() {
 
     // Configuration info
     doc.setFontSize(12);
-    const checkpointText = state.checkpointFrequency === 'every_lap' ? 'Ogni giro' : 'Ogni 2 giri';
-    doc.text(`Configurazione: ${state.totalLaps} giri totali, Traguardi: ${checkpointText}`, 105, 30, { align: 'center' });
+    const checkpointText = state.config.pointsFrequency === 'every_lap' ? 'Ogni giro' : 'Ogni 2 giri';
+    const configText = state.config.totalLaps.toString() + ' giri totali, Traguardi: ' + checkpointText;
+    doc.text('Configurazione: ' + configText, 105, 30, { align: 'center' });
 
     // Date and time
     const now = new Date();
@@ -1139,13 +1322,13 @@ function exportToPDF() {
 
     // Get sorted athletes with tiebreaker logic (same as renderLeaderboard)
     const sortedAthletes = Array.from(state.athletes.values()).sort((a, b) => {
-        // First: lapped athletes go to bottom
-        if (a.status === 'lapped' && b.status !== 'lapped') return 1;
-        if (a.status !== 'lapped' && b.status === 'lapped') return -1;
-
-        // Second: disqualified athletes go to bottom
+        // First: disqualified athletes go to bottom (after lapped)
         if (a.status === 'disqualified' && b.status !== 'disqualified') return 1;
         if (a.status !== 'disqualified' && b.status === 'disqualified') return -1;
+
+        // Second: lapped athletes go after normal, before disqualified
+        if (a.status === 'lapped' && b.status !== 'lapped') return 1;
+        if (a.status !== 'lapped' && b.status === 'lapped') return -1;
 
         // Third: sort by total points (descending)
         if (b.points !== a.points) {

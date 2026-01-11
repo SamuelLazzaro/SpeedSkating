@@ -101,6 +101,12 @@
             <span>Modifica punti liberi</span>
         </button>
 
+        <!-- Edit athlete -->
+        <button type="button" class="menu-item" id="menuEditAthlete" data-action="edit-athlete">
+            <span class="menu-item-icon">👤</span>
+            <span>Modifica atleta</span>
+        </button>
+
         <div class="menu-divider" id="menuDivider2"></div>
 
         <!-- Lap athlete -->
@@ -134,6 +140,20 @@
                 <button type="button" class="submenu-btn" data-points="3" disabled>+3</button>
                 <button type="button" class="submenu-btn" data-points="2" disabled>+2</button>
                 <button type="button" class="submenu-btn" data-points="1" disabled>+1</button>
+            </div>
+        </div>
+
+        <!-- Edit athlete submenu -->
+        <div class="submenu hidden" id="menuEditAthleteSubmenu">
+            <div class="submenu-title">Modifica Atleta</div>
+            <div class="submenu-inputs">
+                <input type="number" id="editAthleteNumber" class="submenu-input" placeholder="Numero *" min="1">
+                <input type="text" id="editAthleteName" class="submenu-input" placeholder="Nome">
+                <input type="text" id="editAthleteSurname" class="submenu-input" placeholder="Cognome">
+            </div>
+            <div class="submenu-buttons-edit-athlete">
+                <button type="button" class="submenu-btn submenu-btn-cancel" id="btnCancelEditAthlete">Annulla</button>
+                <button type="button" class="submenu-btn submenu-btn-confirm" id="btnConfirmEditAthlete">Conferma</button>
             </div>
         </div>
     </div>
