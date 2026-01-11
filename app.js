@@ -580,33 +580,25 @@ function showAthleteMenu(athleteNumber, event) {
     currentMenuAthlete = athleteNumber;
     const athlete = state.athletes.get(athleteNumber);
 
-    // Remove any existing submenu
-    const existingSubmenu = athleteMenu.querySelector('.submenu');
-    if (existingSubmenu) {
-        existingSubmenu.remove();
-    }
-
     // Update athlete number in header
     document.getElementById('athleteMenuNumber').textContent = `Atleta #${athleteNumber}`;
 
     // Get menu items
-    const menuAssignPoints = document.getElementById('menuAssignPoints');
+    const menuAssignPointsSection = document.getElementById('menuAssignPointsSection');
     const menuModifyPoints = document.getElementById('menuModifyPoints');
     const menuLap = document.getElementById('menuLap');
     const menuUnlap = document.getElementById('menuUnlap');
     const menuDisqualify = document.getElementById('menuDisqualify');
     const menuReinstate = document.getElementById('menuReinstate');
-    const menuDivider1 = document.getElementById('menuDivider1');
     const menuDivider2 = document.getElementById('menuDivider2');
 
     // Remove old listeners by cloning all menu items
-    [menuAssignPoints, menuModifyPoints, menuLap, menuUnlap, menuDisqualify, menuReinstate].forEach(item => {
+    [menuModifyPoints, menuLap, menuUnlap, menuDisqualify, menuReinstate].forEach(item => {
         const newItem = item.cloneNode(true);
         item.parentNode.replaceChild(newItem, item);
     });
 
     // Get the new cloned elements
-    const newMenuAssignPoints = document.getElementById('menuAssignPoints');
     const newMenuModifyPoints = document.getElementById('menuModifyPoints');
     const newMenuLap = document.getElementById('menuLap');
     const newMenuUnlap = document.getElementById('menuUnlap');
@@ -614,22 +606,20 @@ function showAthleteMenu(athleteNumber, event) {
     const newMenuReinstate = document.getElementById('menuReinstate');
 
     // Hide all items first
-    newMenuAssignPoints.classList.add('hidden');
+    menuAssignPointsSection.classList.add('hidden');
     newMenuModifyPoints.classList.add('hidden');
     newMenuLap.classList.add('hidden');
     newMenuUnlap.classList.add('hidden');
     newMenuDisqualify.classList.add('hidden');
     newMenuReinstate.classList.add('hidden');
-    menuDivider1.classList.add('hidden');
     menuDivider2.classList.add('hidden');
 
     // Show items based on athlete status
     if (athlete.status === 'normal') {
-        newMenuAssignPoints.classList.remove('hidden');
+        menuAssignPointsSection.classList.remove('hidden');
         newMenuModifyPoints.classList.remove('hidden');
         newMenuLap.classList.remove('hidden');
         newMenuDisqualify.classList.remove('hidden');
-        menuDivider1.classList.remove('hidden');
         menuDivider2.classList.remove('hidden');
     } else if (athlete.status === 'lapped') {
         newMenuUnlap.classList.remove('hidden');
@@ -637,6 +627,9 @@ function showAthleteMenu(athleteNumber, event) {
     } else if (athlete.status === 'disqualified') {
         newMenuReinstate.classList.remove('hidden');
     }
+
+    // Update assign points buttons
+    updateAssignPointsButtons(athleteNumber);
 
     // Add event listeners to visible items
     athleteMenu.querySelectorAll('.menu-item:not(.hidden)').forEach(item => {
@@ -673,18 +666,47 @@ function positionMenu(event) {
 }
 
 function closeAthleteMenu() {
+    // Remove any dynamic submenu (modify points submenu)
+    const existingSubmenu = athleteMenu.querySelector('.submenu:not(#menuAssignPointsSection)');
+    if (existingSubmenu) {
+        existingSubmenu.remove();
+    }
+
     athleteMenu.classList.add('hidden');
     currentMenuAthlete = null;
 }
 
+function updateAssignPointsButtons(athleteNumber) {
+    const points = state.currentCheckpoint.availablePoints;
+    const buttonsContainer = document.getElementById('menuAssignPointsButtons');
+
+    // Get all buttons and update their state
+    const buttons = buttonsContainer.querySelectorAll('.submenu-btn');
+    buttons.forEach(btn => {
+        const pointValue = parseInt(btn.dataset.points);
+        const disabled = !points.includes(pointValue);
+        btn.disabled = disabled;
+
+        // Clone to remove old listeners
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+    });
+
+    // Add event listeners to all buttons
+    buttonsContainer.querySelectorAll('.submenu-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const pointValue = parseInt(btn.dataset.points);
+            assignPointsToAthlete(athleteNumber, pointValue);
+            closeAthleteMenu();
+        });
+    });
+}
+
 function handleMenuAction(action) {
     const athleteNumber = currentMenuAthlete;
-    const athlete = state.athletes.get(athleteNumber);
-    
+
     switch (action) {
-        case 'assign-points':
-            showAssignPointsSubmenu(athleteNumber);
-            break;
         case 'modify-points':
             showModifyPointsSubmenu(athleteNumber);
             break;
@@ -707,60 +729,16 @@ function handleMenuAction(action) {
     }
 }
 
-function showAssignPointsSubmenu(athleteNumber) {
-    const points = state.currentCheckpoint.availablePoints;
-
-    // Remove any existing submenu
-    const existingSubmenu = athleteMenu.querySelector('.submenu');
-    if (existingSubmenu) {
-        existingSubmenu.remove();
-    }
-
-    // Create submenu element
-    const submenu = document.createElement('div');
-    submenu.className = 'submenu';
-
-    // Create title
-    const title = document.createElement('div');
-    title.className = 'submenu-title';
-    title.textContent = 'Assegna Punti Traguardo';
-    submenu.appendChild(title);
-
-    // Create buttons container
-    const buttonsContainer = document.createElement('div');
-    buttonsContainer.className = 'submenu-buttons';
-
-    // Create buttons
-    [3, 2, 1].forEach(p => {
-        const disabled = !points.includes(p);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'submenu-btn';
-        btn.dataset.points = p;
-        btn.textContent = `+${p}`;
-        btn.disabled = disabled;
-
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            assignPointsToAthlete(athleteNumber, p);
-            closeAthleteMenu();
-        });
-
-        buttonsContainer.appendChild(btn);
-    });
-
-    submenu.appendChild(buttonsContainer);
-
-    // Append submenu to athleteMenu
-    athleteMenu.appendChild(submenu);
-}
-
 function showModifyPointsSubmenu(athleteNumber) {
-    // Remove any existing submenu
-    const existingSubmenu = athleteMenu.querySelector('.submenu');
+    // Remove any existing dynamic submenu (but keep the static assign points section)
+    const existingSubmenu = athleteMenu.querySelector('.submenu:not(#menuAssignPointsSection)');
     if (existingSubmenu) {
         existingSubmenu.remove();
     }
+
+    // Hide the assign points section when showing modify points submenu
+    const assignPointsSection = document.getElementById('menuAssignPointsSection');
+    assignPointsSection.classList.add('hidden');
 
     // Create submenu element
     const submenu = document.createElement('div');
@@ -796,8 +774,8 @@ function showModifyPointsSubmenu(athleteNumber) {
 
     submenu.appendChild(buttonsContainer);
 
-    // Append submenu to athleteMenu
-    athleteMenu.appendChild(submenu);
+    // Insert before the static assign points section
+    athleteMenu.insertBefore(submenu, assignPointsSection);
 }
 
 function modifyAthletePointsFree(athleteNumber, pointsChange) {
