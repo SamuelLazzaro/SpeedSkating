@@ -227,9 +227,9 @@ function endRace() {
             logAction('Gara terminata - Classifica congelata');
             saveToLocalStorage();
             renderLeaderboard();
-            
-            // TODO: Trigger PDF export
-            alert('🏁 Gara terminata! (Export PDF in sviluppo)');
+
+            // Export PDF
+            exportToPDF();
         }
     );
 }
@@ -794,12 +794,13 @@ function modifyAthletePointsFree(athleteNumber, pointsChange) {
 function lapAthlete(athleteNumber) {
     const athlete = state.athletes.get(athleteNumber);
     if (!athlete) return;
-    
+
     athlete.savedPoints = athlete.points;
     athlete.points = 0;
     athlete.status = 'lapped';
-    
-    logAction(`Atleta #${athleteNumber} doppiato (${athlete.savedPoints} punti conservati)`);
+
+    const checkpointInfo = state.currentCheckpoint.number > 0 ? ` - Checkpoint ${state.currentCheckpoint.number}` : '';
+    logAction(`Atleta #${athleteNumber} doppiato (${athlete.savedPoints} punti conservati)${checkpointInfo}`);
     saveToLocalStorage();
     renderLeaderboard();
 }
@@ -807,12 +808,13 @@ function lapAthlete(athleteNumber) {
 function unlapAthlete(athleteNumber) {
     const athlete = state.athletes.get(athleteNumber);
     if (!athlete || athlete.status !== 'lapped') return;
-    
+
     athlete.points = athlete.savedPoints;
     athlete.savedPoints = 0;
     athlete.status = 'normal';
-    
-    logAction(`Atleta #${athleteNumber} sdoppiato (${athlete.points} punti ripristinati)`);
+
+    const checkpointInfo = state.currentCheckpoint.number > 0 ? ` - Checkpoint ${state.currentCheckpoint.number}` : '';
+    logAction(`Atleta #${athleteNumber} sdoppiato (${athlete.points} punti ripristinati)${checkpointInfo}`);
     saveToLocalStorage();
     renderLeaderboard();
 }
@@ -820,18 +822,19 @@ function unlapAthlete(athleteNumber) {
 function disqualifyAthlete(athleteNumber) {
     const athlete = state.athletes.get(athleteNumber);
     if (!athlete) return;
-    
+
     // If lapped, save those points instead
     if (athlete.status === 'lapped') {
         athlete.savedPoints = athlete.savedPoints; // Keep saved points from lapping
     } else {
         athlete.savedPoints = athlete.points;
     }
-    
+
     athlete.points = 0;
     athlete.status = 'disqualified';
-    
-    logAction(`Atleta #${athleteNumber} squalificato (${athlete.savedPoints} punti conservati)`);
+
+    const checkpointInfo = state.currentCheckpoint.number > 0 ? ` - Checkpoint ${state.currentCheckpoint.number}` : '';
+    logAction(`Atleta #${athleteNumber} squalificato (${athlete.savedPoints} punti conservati)${checkpointInfo}`);
     saveToLocalStorage();
     renderLeaderboard();
 }
@@ -839,12 +842,13 @@ function disqualifyAthlete(athleteNumber) {
 function reinstateAthlete(athleteNumber) {
     const athlete = state.athletes.get(athleteNumber);
     if (!athlete || athlete.status !== 'disqualified') return;
-    
+
     athlete.points = athlete.savedPoints;
     athlete.savedPoints = 0;
     athlete.status = 'normal';
-    
-    logAction(`Atleta #${athleteNumber} riabilitato (${athlete.points} punti ripristinati)`);
+
+    const checkpointInfo = state.currentCheckpoint.number > 0 ? ` - Checkpoint ${state.currentCheckpoint.number}` : '';
+    logAction(`Atleta #${athleteNumber} riabilitato (${athlete.points} punti ripristinati)${checkpointInfo}`);
     saveToLocalStorage();
     renderLeaderboard();
 }
@@ -993,3 +997,254 @@ if (loadFromLocalStorage()) {
     updateUndoButton();
     updateLastCheckpointSummary();
 }
+
+// ========== PDF EXPORT ==========
+function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Title
+    doc.setFontSize(20);
+    doc.text('Gara a Punti - Pattinaggio', 105, 20, { align: 'center' });
+
+    // Configuration info
+    doc.setFontSize(12);
+    const checkpointText = state.checkpointFrequency === 'every_lap' ? 'Ogni giro' : 'Ogni 2 giri';
+    doc.text(`Configurazione: ${state.totalLaps} giri totali, Traguardi: ${checkpointText}`, 105, 30, { align: 'center' });
+
+    // Date and time
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    doc.setFontSize(10);
+    doc.text(`Esportato il ${dateStr} alle ${timeStr}`, 105, 37, { align: 'center' });
+
+    // Leaderboard header
+    doc.setFontSize(14);
+    doc.text('Classifica Finale', 20, 50);
+
+    // Get sorted athletes
+    const sortedAthletes = Array.from(state.athletes.values()).sort((a, b) => {
+        if (a.status === 'disqualified' && b.status !== 'disqualified') return 1;
+        if (a.status !== 'disqualified' && b.status === 'disqualified') return -1;
+        if (a.status === 'lapped' && b.status !== 'lapped') return 1;
+        if (a.status !== 'lapped' && b.status === 'lapped') return -1;
+        return b.points - a.points;
+    });
+
+    // Table headers
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    let yPos = 60;
+    doc.text('Pos', 20, yPos);
+    doc.text('Atleta', 40, yPos);
+    doc.text('Punti', 80, yPos);
+    doc.text('Stato', 110, yPos);
+
+    // Draw line under header
+    doc.line(20, yPos + 2, 190, yPos + 2);
+
+    // Table rows
+    doc.setFont(undefined, 'normal');
+    yPos += 10;
+
+    sortedAthletes.forEach((athlete, index) => {
+        // Check if we need a new page
+        if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        const position = athlete.status === 'disqualified' ? 'SQ' :
+                        athlete.status === 'lapped' ? 'D' :
+                        (index + 1).toString();
+
+        const statusText = athlete.status === 'disqualified' ? 'Squalificato' :
+                          athlete.status === 'lapped' ? 'Doppiato' :
+                          '';
+
+        doc.text(position, 20, yPos);
+        doc.text(`#${athlete.number}`, 40, yPos);
+        doc.text(athlete.points.toString(), 80, yPos);
+        if (statusText) {
+            doc.text(statusText, 110, yPos);
+        }
+
+        yPos += 7;
+    });
+
+    // Add checkpoints summary section
+    yPos += 10; // Extra spacing
+    if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Riepilogo Traguardi', 20, yPos);
+    yPos += 10;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+
+    if (state.actionLog && state.actionLog.length > 0) {
+        // Group actions by checkpoint
+        const checkpointData = {};
+
+        state.actionLog.forEach(action => {
+            const msg = action.message;
+
+            // Extract checkpoint number from various action types
+            let checkpointMatch = msg.match(/Checkpoint (\d+)/);
+            if (checkpointMatch) {
+                const checkpointNum = parseInt(checkpointMatch[1]);
+
+                if (!checkpointData[checkpointNum]) {
+                    checkpointData[checkpointNum] = {
+                        points: [],
+                        lapped: [],
+                        unlapped: [],
+                        disqualified: [],
+                        reinstated: [],
+                        modifiedPoints: []
+                    };
+                }
+
+                // Parse action types
+                if (msg.includes('Assegnati')) {
+                    // "Assegnati 3 punti a #10 (Checkpoint 1)"
+                    const pointsMatch = msg.match(/Assegnati (\d+) punti a #(\d+)/);
+                    if (pointsMatch) {
+                        checkpointData[checkpointNum].points.push({
+                            athlete: pointsMatch[2],
+                            points: pointsMatch[1]
+                        });
+                    }
+                } else if (msg.includes('doppiato') && !msg.includes('sdoppiato')) {
+                    const athleteMatch = msg.match(/Atleta #(\d+)/);
+                    if (athleteMatch) {
+                        checkpointData[checkpointNum].lapped.push(athleteMatch[1]);
+                    }
+                } else if (msg.includes('sdoppiato')) {
+                    const athleteMatch = msg.match(/Atleta #(\d+)/);
+                    if (athleteMatch) {
+                        checkpointData[checkpointNum].unlapped.push(athleteMatch[1]);
+                    }
+                } else if (msg.includes('squalificato')) {
+                    const athleteMatch = msg.match(/Atleta #(\d+)/);
+                    if (athleteMatch) {
+                        checkpointData[checkpointNum].disqualified.push(athleteMatch[1]);
+                    }
+                } else if (msg.includes('riabilitato')) {
+                    const athleteMatch = msg.match(/Atleta #(\d+)/);
+                    if (athleteMatch) {
+                        checkpointData[checkpointNum].reinstated.push(athleteMatch[1]);
+                    }
+                }
+            } else if (msg.includes('Modifica libera')) {
+                // Handle free point modifications without checkpoint
+                const match = msg.match(/Modifica libera: ([+-]\d+) punti a #(\d+)/);
+                if (match) {
+                    if (!checkpointData['mod']) {
+                        checkpointData['mod'] = { modifiedPoints: [] };
+                    }
+                    checkpointData['mod'].modifiedPoints.push({
+                        athlete: match[2],
+                        change: match[1]
+                    });
+                }
+            }
+        });
+
+        // Display grouped data (reverse order: last checkpoint first)
+        const checkpointNums = Object.keys(checkpointData).filter(k => k !== 'mod').map(Number).sort((a, b) => b - a);
+
+        if (checkpointNums.length > 0) {
+            checkpointNums.forEach(checkpointNum => {
+                const data = checkpointData[checkpointNum];
+                const parts = [];
+
+                // Add points assignments
+                if (data.points.length > 0) {
+                    data.points.forEach(p => {
+                        parts.push(`#${p.athlete} (${p.points}pt)`);
+                    });
+                }
+
+                // Add status changes
+                if (data.lapped.length > 0) {
+                    data.lapped.forEach(a => parts.push(`#${a} doppiato`));
+                }
+                if (data.unlapped.length > 0) {
+                    data.unlapped.forEach(a => parts.push(`#${a} sdoppiato`));
+                }
+                if (data.disqualified.length > 0) {
+                    data.disqualified.forEach(a => parts.push(`#${a} squalificato`));
+                }
+                if (data.reinstated.length > 0) {
+                    data.reinstated.forEach(a => parts.push(`#${a} riabilitato`));
+                }
+
+                if (parts.length > 0) {
+                    if (yPos > 275) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    const line = `Traguardo ${checkpointNum}: ${parts.join('; ')}`;
+                    const splitText = doc.splitTextToSize(line, 170);
+
+                    splitText.forEach(textLine => {
+                        if (yPos > 275) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(textLine, 20, yPos);
+                        yPos += 6;
+                    });
+                }
+            });
+
+            // Add free point modifications if any
+            if (checkpointData['mod'] && checkpointData['mod'].modifiedPoints.length > 0) {
+                yPos += 4;
+                if (yPos > 275) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.setFont(undefined, 'bold');
+                doc.text('Modifiche punti liberi:', 20, yPos);
+                yPos += 6;
+                doc.setFont(undefined, 'normal');
+
+                checkpointData['mod'].modifiedPoints.forEach(mod => {
+                    if (yPos > 275) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    doc.text(`#${mod.athlete}: ${mod.change} punti`, 25, yPos);
+                    yPos += 6;
+                });
+            }
+        } else {
+            doc.text('Nessun traguardo completato', 20, yPos);
+        }
+    } else {
+        doc.text('Nessuna azione registrata', 20, yPos);
+    }
+
+    // Footer on last page
+    doc.setFontSize(8);
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.text(`Pagina ${i} di ${pageCount}`, 105, 287, { align: 'center' });
+        doc.text('Generato da Gara a Punti - Pattinaggio', 105, 292, { align: 'center' });
+    }
+
+    // Save PDF
+    const filename = `gara_punti_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.pdf`;
+    doc.save(filename);
+}
+
