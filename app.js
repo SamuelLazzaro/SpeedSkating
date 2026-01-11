@@ -30,8 +30,10 @@ const state = {
 
 // Athlete data structure
 class Athlete {
-    constructor(number) {
+    constructor(number, name = '', surname = '') {
         this.number = number;
+        this.name = name;
+        this.surname = surname;
         this.points = 0;
         this.status = 'normal'; // 'normal', 'lapped', 'disqualified'
         this.savedPoints = 0; // For lapped/disqualified recovery
@@ -192,7 +194,12 @@ function updateLastCheckpointSummary() {
     html += `<ul class="last-checkpoint-summary-list">`;
 
     sortedAthletes.forEach(assignment => {
-        html += `<li class="last-checkpoint-summary-item">#${assignment.number}: ${assignment.points}pt</li>`;
+        const athlete = state.athletes.get(assignment.number);
+        const nameDisplay = athlete && (athlete.name || athlete.surname)
+            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
+            : '';
+        const separator = nameDisplay ? ' ' : '';
+        html += `<li class="last-checkpoint-summary-item">#${assignment.number}${separator}${nameDisplay}: ${assignment.points}pt</li>`;
     });
 
     html += `</ul>`;
@@ -318,7 +325,7 @@ function isAthleteAlreadyAssignedInCheckpoint(athleteNumber) {
     return state.currentCheckpoint.assignedAthletes.some(a => a.number === athleteNumber);
 }
 
-function assignPointsToAthlete(athleteNumber, points) {
+function assignPointsToAthlete(athleteNumber, points, name = '', surname = '') {
     // Validation
     if (state.raceEnded) {
         alert('❌ La gara è terminata, non puoi più modificare la classifica');
@@ -338,9 +345,10 @@ function assignPointsToAthlete(athleteNumber, points) {
     // Get or create athlete
     let athlete = state.athletes.get(athleteNumber);
     if (!athlete) {
-        athlete = new Athlete(athleteNumber);
+        athlete = new Athlete(athleteNumber, name, surname);
         state.athletes.set(athleteNumber, athlete);
-        logAction(`Atleta #${athleteNumber} aggiunto alla classifica`);
+        const nameDisplay = name || surname ? ` (${name} ${surname})`.trim() : '';
+        logAction(`Atleta #${athleteNumber}${nameDisplay} aggiunto alla classifica`);
     }
 
     // Check if disqualified
@@ -514,26 +522,28 @@ function renderLeaderboard() {
             <thead>
                 <tr>
                     <th style="width: 60px;">Pos.</th>
-                    <th>Atleta</th>
+                    <th style="width: 80px;">Numero</th>
+                    <th>Nome</th>
+                    <th>Cognome</th>
                     <th style="width: 80px;">Punti</th>
                     <th style="width: 60px;">Stato</th>
                 </tr>
             </thead>
             <tbody>
     `;
-    
+
     sortedAthletes.forEach((athlete, index) => {
         const position = index + 1;
-        const positionClass = position === 1 ? 'position-1' : 
-                             position === 2 ? 'position-2' : 
+        const positionClass = position === 1 ? 'position-1' :
+                             position === 2 ? 'position-2' :
                              position === 3 ? 'position-3' : 'position-other';
-        
-        const statusIcon = athlete.status === 'lapped' ? '🔄' : 
+
+        const statusIcon = athlete.status === 'lapped' ? '🔄' :
                           athlete.status === 'disqualified' ? '❌' : '';
-        
+
         const rowClass = state.raceEnded ? '' : '';
         const clickable = !state.raceEnded;
-        
+
         html += `
             <tr class="${rowClass}" data-athlete="${athlete.number}" ${clickable ? 'style="cursor: pointer;"' : ''}>
                 <td>
@@ -541,6 +551,12 @@ function renderLeaderboard() {
                 </td>
                 <td>
                     <span class="athlete-number">#${athlete.number}</span>
+                </td>
+                <td>
+                    <span class="athlete-name">${athlete.name || ''}</span>
+                </td>
+                <td>
+                    <span class="athlete-surname">${athlete.surname || ''}</span>
                 </td>
                 <td>
                     <span class="athlete-points">${athlete.points}</span>
@@ -862,29 +878,30 @@ document.addEventListener('click', (e) => {
 
 // ========== KEYBOARD OVERLAY ==========
 const keyboardOverlay = document.getElementById('keyboardOverlay');
-const keyboardDisplay = document.getElementById('keyboardDisplay');
 const keyboardPointsGrid = document.getElementById('keyboardPointsGrid');
 const btnCloseKeyboard = document.getElementById('btnCloseKeyboard');
-let currentKeyboardNumber = '';
+const inputAthleteNumber = document.getElementById('inputAthleteNumber');
+const inputAthleteName = document.getElementById('inputAthleteName');
+const inputAthleteSurname = document.getElementById('inputAthleteSurname');
 
 function openKeyboard() {
     keyboardOverlay.classList.remove('hidden');
-    currentKeyboardNumber = '';
-    updateKeyboardDisplay();
+    clearKeyboardInputs();
     updateKeyboardPoints();
+    updateKeyboardPointsButtons();
+    // Focus on number input
+    setTimeout(() => inputAthleteNumber.focus(), 100);
 }
 
 function closeKeyboard() {
     keyboardOverlay.classList.add('hidden');
-    currentKeyboardNumber = '';
+    clearKeyboardInputs();
 }
 
-function updateKeyboardDisplay() {
-    if (currentKeyboardNumber === '') {
-        keyboardDisplay.innerHTML = '<span class="keyboard-display-placeholder">Digita il numero...</span>';
-    } else {
-        keyboardDisplay.innerHTML = `<span class="keyboard-display-number">#${currentKeyboardNumber}</span>`;
-    }
+function clearKeyboardInputs() {
+    inputAthleteNumber.value = '';
+    inputAthleteName.value = '';
+    inputAthleteSurname.value = '';
 }
 
 function updateKeyboardPoints() {
@@ -900,7 +917,7 @@ function updateKeyboardPoints() {
     btnPoints2.disabled = !points.includes(2);
     btnPoints1.disabled = !points.includes(1);
 
-    // Add event listeners - mantengo i listener dinamici per compatibilità
+    // Add event listeners
     keyboardPointsGrid.querySelectorAll('.keyboard-points-btn').forEach(btn => {
         // Remove old listeners by cloning
         const newBtn = btn.cloneNode(true);
@@ -909,17 +926,22 @@ function updateKeyboardPoints() {
 
     keyboardPointsGrid.querySelectorAll('.keyboard-points-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (currentKeyboardNumber === '') {
-                alert('❌ Digita prima il numero dell\'atleta');
+            const athleteNumber = inputAthleteNumber.value.trim();
+
+            if (athleteNumber === '') {
+                alert('❌ Inserisci il numero dell\'atleta');
+                inputAthleteNumber.focus();
                 return;
             }
 
-            const athleteNumber = parseInt(currentKeyboardNumber);
+            const athleteNumInt = parseInt(athleteNumber);
+            const name = inputAthleteName.value.trim();
+            const surname = inputAthleteSurname.value.trim();
             const points = parseInt(btn.dataset.points);
 
-            if (assignPointsToAthlete(athleteNumber, points)) {
-                currentKeyboardNumber = '';
-                updateKeyboardDisplay();
+            if (assignPointsToAthlete(athleteNumInt, points, name, surname)) {
+                clearKeyboardInputs();
+                inputAthleteNumber.focus();
             }
         });
     });
@@ -928,21 +950,50 @@ function updateKeyboardPoints() {
 btnOpenKeyboard.addEventListener('click', openKeyboard);
 btnCloseKeyboard.addEventListener('click', closeKeyboard);
 
-// Keyboard key handling
+// Prevent non-numeric input in number field
+inputAthleteNumber.addEventListener('input', (e) => {
+    // Remove any non-numeric characters
+    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    updateKeyboardPointsButtons();
+});
+
+inputAthleteNumber.addEventListener('keypress', (e) => {
+    // Prevent typing non-numeric characters
+    if (!/[0-9]/.test(e.key) && e.key !== 'Enter' && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab') {
+        e.preventDefault();
+    }
+});
+
+// Update button states when number changes
+function updateKeyboardPointsButtons() {
+    const hasNumber = inputAthleteNumber.value.trim() !== '';
+    const points = state.currentCheckpoint.availablePoints;
+
+    const btnPoints3 = document.getElementById('btnPoints3');
+    const btnPoints2 = document.getElementById('btnPoints2');
+    const btnPoints1 = document.getElementById('btnPoints1');
+
+    // Disable if no number OR if points not available
+    btnPoints3.disabled = !hasNumber || !points.includes(3);
+    btnPoints2.disabled = !hasNumber || !points.includes(2);
+    btnPoints1.disabled = !hasNumber || !points.includes(1);
+}
+
+// Keyboard key handling - updates number input
 document.querySelectorAll('.keyboard-key').forEach(key => {
     key.addEventListener('click', () => {
         const value = key.dataset.key;
 
         if (value === 'C') {
-            currentKeyboardNumber = '';
+            inputAthleteNumber.value = '';
         } else if (value === 'backspace') {
-            currentKeyboardNumber = currentKeyboardNumber.slice(0, -1);
+            inputAthleteNumber.value = inputAthleteNumber.value.slice(0, -1);
         } else {
-            currentKeyboardNumber += value;
+            inputAthleteNumber.value += value;
         }
 
-        updateKeyboardDisplay();
-        updateKeyboardPoints();
+        updateKeyboardPointsButtons();
+        inputAthleteNumber.focus();
     });
 });
 
@@ -1037,9 +1088,11 @@ function exportToPDF() {
     doc.setFont(undefined, 'bold');
     let yPos = 60;
     doc.text('Pos', 20, yPos);
-    doc.text('Atleta', 40, yPos);
-    doc.text('Punti', 80, yPos);
-    doc.text('Stato', 110, yPos);
+    doc.text('Num', 35, yPos);
+    doc.text('Nome', 55, yPos);
+    doc.text('Cognome', 95, yPos);
+    doc.text('Punti', 140, yPos);
+    doc.text('Stato', 165, yPos);
 
     // Draw line under header
     doc.line(20, yPos + 2, 190, yPos + 2);
@@ -1064,10 +1117,12 @@ function exportToPDF() {
                           '';
 
         doc.text(position, 20, yPos);
-        doc.text(`#${athlete.number}`, 40, yPos);
-        doc.text(athlete.points.toString(), 80, yPos);
+        doc.text(`#${athlete.number}`, 35, yPos);
+        doc.text(athlete.name || '', 55, yPos);
+        doc.text(athlete.surname || '', 95, yPos);
+        doc.text(athlete.points.toString(), 140, yPos);
         if (statusText) {
-            doc.text(statusText, 110, yPos);
+            doc.text(statusText, 165, yPos);
         }
 
         yPos += 7;
@@ -1168,22 +1223,55 @@ function exportToPDF() {
                 // Add points assignments
                 if (data.points.length > 0) {
                     data.points.forEach(p => {
-                        parts.push(`#${p.athlete} (${p.points}pt)`);
+                        const athlete = state.athletes.get(parseInt(p.athlete));
+                        const nameDisplay = athlete && (athlete.name || athlete.surname)
+                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
+                            : '';
+                        const separator = nameDisplay ? ' ' : '';
+                        parts.push(`#${p.athlete}${separator}${nameDisplay} (${p.points}pt)`);
                     });
                 }
 
                 // Add status changes
                 if (data.lapped.length > 0) {
-                    data.lapped.forEach(a => parts.push(`#${a} doppiato`));
+                    data.lapped.forEach(a => {
+                        const athlete = state.athletes.get(parseInt(a));
+                        const nameDisplay = athlete && (athlete.name || athlete.surname)
+                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
+                            : '';
+                        const separator = nameDisplay ? ' ' : '';
+                        parts.push(`#${a}${separator}${nameDisplay} (doppiato)`);
+                    });
                 }
                 if (data.unlapped.length > 0) {
-                    data.unlapped.forEach(a => parts.push(`#${a} sdoppiato`));
+                    data.unlapped.forEach(a => {
+                        const athlete = state.athletes.get(parseInt(a));
+                        const nameDisplay = athlete && (athlete.name || athlete.surname)
+                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
+                            : '';
+                        const separator = nameDisplay ? ' ' : '';
+                        parts.push(`#${a}${separator}${nameDisplay} (sdoppiato)`);
+                    });
                 }
                 if (data.disqualified.length > 0) {
-                    data.disqualified.forEach(a => parts.push(`#${a} squalificato`));
+                    data.disqualified.forEach(a => {
+                        const athlete = state.athletes.get(parseInt(a));
+                        const nameDisplay = athlete && (athlete.name || athlete.surname)
+                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
+                            : '';
+                        const separator = nameDisplay ? ' ' : '';
+                        parts.push(`#${a}${separator}${nameDisplay} (squalificato)`);
+                    });
                 }
                 if (data.reinstated.length > 0) {
-                    data.reinstated.forEach(a => parts.push(`#${a} riabilitato`));
+                    data.reinstated.forEach(a => {
+                        const athlete = state.athletes.get(parseInt(a));
+                        const nameDisplay = athlete && (athlete.name || athlete.surname)
+                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
+                            : '';
+                        const separator = nameDisplay ? ' ' : '';
+                        parts.push(`#${a}${separator}${nameDisplay} (riabilitato)`);
+                    });
                 }
 
                 if (parts.length > 0) {
