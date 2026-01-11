@@ -1,0 +1,3 @@
+1. Atleti squalificati in fondo alla classifica rispetto ai doppiati
+2. Quando inserisco un numero da tastiera non deve essere rilevato come input, quindi non deve aprire la tastiera di dispositivi touch
+3. Se da tastiera viene inserito il numero di un atleta già presente in classifica, deve essere visualizzato Nome e Cognome nel popup della tastiera

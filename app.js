@@ -501,6 +501,39 @@ function updateUndoButton() {
 btnUndo.addEventListener('click', undoLastCheckpoint);
 
 // ========== LEADERBOARD RENDERING ==========
+function getFinalCheckpointPoints(athleteNumber) {
+    // Find the final checkpoint (the one with 3 points available)
+    let finalCheckpoint = null;
+
+    // Search through history for checkpoints with 3 points
+    for (let i = state.checkpointHistory.length - 1; i >= 0; i--) {
+        const checkpoint = state.checkpointHistory[i];
+        // Check if this was a final checkpoint (had 3 points assignments possible)
+        const had3Points = checkpoint.athletes.some(a => a.points === 3);
+        if (had3Points) {
+            finalCheckpoint = checkpoint;
+            break;
+        }
+    }
+
+    // If no final checkpoint in history yet, return null
+    if (!finalCheckpoint) {
+        return null;
+    }
+
+    // Find this athlete's assignment in the final checkpoint
+    const assignment = finalCheckpoint.athletes.find(a => a.number === athleteNumber);
+
+    if (assignment) {
+        // Return both points and order (lower index = arrived first)
+        const order = finalCheckpoint.athletes.findIndex(a => a.number === athleteNumber);
+        return { points: assignment.points, order: order };
+    }
+
+    // Athlete didn't score in final checkpoint
+    return { points: 0, order: 999 };
+}
+
 function renderLeaderboard() {
     if (state.athletes.size === 0) {
         leaderboardContent.innerHTML = `
@@ -512,10 +545,40 @@ function renderLeaderboard() {
         `;
         return;
     }
-    
-    // Sort athletes by points (descending)
+
+    // Sort athletes with tiebreaker logic
     const sortedAthletes = Array.from(state.athletes.values())
-        .sort((a, b) => b.points - a.points);
+        .sort((a, b) => {
+            // First: lapped athletes go to bottom
+            if (a.status === 'lapped' && b.status !== 'lapped') return 1;
+            if (a.status !== 'lapped' && b.status === 'lapped') return -1;
+
+            // Second: disqualified athletes go to bottom
+            if (a.status === 'disqualified' && b.status !== 'disqualified') return 1;
+            if (a.status !== 'disqualified' && b.status === 'disqualified') return -1;
+
+            // Third: sort by total points (descending)
+            if (b.points !== a.points) {
+                return b.points - a.points;
+            }
+
+            // Fourth: if equal points, sort by final checkpoint performance
+            const aFinal = getFinalCheckpointPoints(a.number);
+            const bFinal = getFinalCheckpointPoints(b.number);
+
+            // If we have final checkpoint data, use it for tiebreaker
+            if (aFinal && bFinal) {
+                // First compare by points in final checkpoint (higher is better)
+                if (bFinal.points !== aFinal.points) {
+                    return bFinal.points - aFinal.points;
+                }
+                // If same points in final checkpoint, earlier arrival wins (lower order is better)
+                return aFinal.order - bFinal.order;
+            }
+
+            // No tiebreaker available, keep original order
+            return 0;
+        });
     
     let html = `
         <table class="leaderboard-table">
@@ -1074,13 +1137,37 @@ function exportToPDF() {
     doc.setFontSize(14);
     doc.text('Classifica Finale', 20, 50);
 
-    // Get sorted athletes
+    // Get sorted athletes with tiebreaker logic (same as renderLeaderboard)
     const sortedAthletes = Array.from(state.athletes.values()).sort((a, b) => {
-        if (a.status === 'disqualified' && b.status !== 'disqualified') return 1;
-        if (a.status !== 'disqualified' && b.status === 'disqualified') return -1;
+        // First: lapped athletes go to bottom
         if (a.status === 'lapped' && b.status !== 'lapped') return 1;
         if (a.status !== 'lapped' && b.status === 'lapped') return -1;
-        return b.points - a.points;
+
+        // Second: disqualified athletes go to bottom
+        if (a.status === 'disqualified' && b.status !== 'disqualified') return 1;
+        if (a.status !== 'disqualified' && b.status === 'disqualified') return -1;
+
+        // Third: sort by total points (descending)
+        if (b.points !== a.points) {
+            return b.points - a.points;
+        }
+
+        // Fourth: if equal points, sort by final checkpoint performance
+        const aFinal = getFinalCheckpointPoints(a.number);
+        const bFinal = getFinalCheckpointPoints(b.number);
+
+        // If we have final checkpoint data, use it for tiebreaker
+        if (aFinal && bFinal) {
+            // First compare by points in final checkpoint (higher is better)
+            if (bFinal.points !== aFinal.points) {
+                return bFinal.points - aFinal.points;
+            }
+            // If same points in final checkpoint, earlier arrival wins (lower order is better)
+            return aFinal.order - bFinal.order;
+        }
+
+        // No tiebreaker available, keep original order
+        return 0;
     });
 
     // Table headers
@@ -1143,183 +1230,50 @@ function exportToPDF() {
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
 
-    if (state.actionLog && state.actionLog.length > 0) {
-        // Group actions by checkpoint
-        const checkpointData = {};
+    // Build checkpoint summary from checkpointHistory (excludes undone checkpoints)
+    if (state.checkpointHistory && state.checkpointHistory.length > 0) {
+        // Sort checkpoints in reverse order (last checkpoint first)
+        const sortedCheckpoints = [...state.checkpointHistory].sort((a, b) => b.number - a.number);
 
-        state.actionLog.forEach(action => {
-            const msg = action.message;
+        sortedCheckpoints.forEach(checkpoint => {
+            const parts = [];
 
-            // Extract checkpoint number from various action types
-            let checkpointMatch = msg.match(/Checkpoint (\d+)/);
-            if (checkpointMatch) {
-                const checkpointNum = parseInt(checkpointMatch[1]);
+            // Add points assignments
+            if (checkpoint.athletes && checkpoint.athletes.length > 0) {
+                // Sort athletes by points in descending order
+                const sortedAthletes = [...checkpoint.athletes].sort((a, b) => b.points - a.points);
 
-                if (!checkpointData[checkpointNum]) {
-                    checkpointData[checkpointNum] = {
-                        points: [],
-                        lapped: [],
-                        unlapped: [],
-                        disqualified: [],
-                        reinstated: [],
-                        modifiedPoints: []
-                    };
-                }
-
-                // Parse action types
-                if (msg.includes('Assegnati')) {
-                    // "Assegnati 3 punti a #10 (Checkpoint 1)"
-                    const pointsMatch = msg.match(/Assegnati (\d+) punti a #(\d+)/);
-                    if (pointsMatch) {
-                        checkpointData[checkpointNum].points.push({
-                            athlete: pointsMatch[2],
-                            points: pointsMatch[1]
-                        });
-                    }
-                } else if (msg.includes('doppiato') && !msg.includes('sdoppiato')) {
-                    const athleteMatch = msg.match(/Atleta #(\d+)/);
-                    if (athleteMatch) {
-                        checkpointData[checkpointNum].lapped.push(athleteMatch[1]);
-                    }
-                } else if (msg.includes('sdoppiato')) {
-                    const athleteMatch = msg.match(/Atleta #(\d+)/);
-                    if (athleteMatch) {
-                        checkpointData[checkpointNum].unlapped.push(athleteMatch[1]);
-                    }
-                } else if (msg.includes('squalificato')) {
-                    const athleteMatch = msg.match(/Atleta #(\d+)/);
-                    if (athleteMatch) {
-                        checkpointData[checkpointNum].disqualified.push(athleteMatch[1]);
-                    }
-                } else if (msg.includes('riabilitato')) {
-                    const athleteMatch = msg.match(/Atleta #(\d+)/);
-                    if (athleteMatch) {
-                        checkpointData[checkpointNum].reinstated.push(athleteMatch[1]);
-                    }
-                }
-            } else if (msg.includes('Modifica libera')) {
-                // Handle free point modifications without checkpoint
-                const match = msg.match(/Modifica libera: ([+-]\d+) punti a #(\d+)/);
-                if (match) {
-                    if (!checkpointData['mod']) {
-                        checkpointData['mod'] = { modifiedPoints: [] };
-                    }
-                    checkpointData['mod'].modifiedPoints.push({
-                        athlete: match[2],
-                        change: match[1]
-                    });
-                }
+                sortedAthletes.forEach(assignment => {
+                    const athlete = state.athletes.get(assignment.number);
+                    const nameDisplay = athlete && (athlete.name || athlete.surname)
+                        ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
+                        : '';
+                    const separator = nameDisplay ? ' ' : '';
+                    parts.push(`#${assignment.number}${separator}${nameDisplay} (${assignment.points}pt)`);
+                });
             }
-        });
 
-        // Display grouped data (reverse order: last checkpoint first)
-        const checkpointNums = Object.keys(checkpointData).filter(k => k !== 'mod').map(Number).sort((a, b) => b - a);
-
-        if (checkpointNums.length > 0) {
-            checkpointNums.forEach(checkpointNum => {
-                const data = checkpointData[checkpointNum];
-                const parts = [];
-
-                // Add points assignments
-                if (data.points.length > 0) {
-                    data.points.forEach(p => {
-                        const athlete = state.athletes.get(parseInt(p.athlete));
-                        const nameDisplay = athlete && (athlete.name || athlete.surname)
-                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
-                            : '';
-                        const separator = nameDisplay ? ' ' : '';
-                        parts.push(`#${p.athlete}${separator}${nameDisplay} (${p.points}pt)`);
-                    });
-                }
-
-                // Add status changes
-                if (data.lapped.length > 0) {
-                    data.lapped.forEach(a => {
-                        const athlete = state.athletes.get(parseInt(a));
-                        const nameDisplay = athlete && (athlete.name || athlete.surname)
-                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
-                            : '';
-                        const separator = nameDisplay ? ' ' : '';
-                        parts.push(`#${a}${separator}${nameDisplay} (doppiato)`);
-                    });
-                }
-                if (data.unlapped.length > 0) {
-                    data.unlapped.forEach(a => {
-                        const athlete = state.athletes.get(parseInt(a));
-                        const nameDisplay = athlete && (athlete.name || athlete.surname)
-                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
-                            : '';
-                        const separator = nameDisplay ? ' ' : '';
-                        parts.push(`#${a}${separator}${nameDisplay} (sdoppiato)`);
-                    });
-                }
-                if (data.disqualified.length > 0) {
-                    data.disqualified.forEach(a => {
-                        const athlete = state.athletes.get(parseInt(a));
-                        const nameDisplay = athlete && (athlete.name || athlete.surname)
-                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
-                            : '';
-                        const separator = nameDisplay ? ' ' : '';
-                        parts.push(`#${a}${separator}${nameDisplay} (squalificato)`);
-                    });
-                }
-                if (data.reinstated.length > 0) {
-                    data.reinstated.forEach(a => {
-                        const athlete = state.athletes.get(parseInt(a));
-                        const nameDisplay = athlete && (athlete.name || athlete.surname)
-                            ? ` ${athlete.name || ''} ${athlete.surname || ''}`.trim()
-                            : '';
-                        const separator = nameDisplay ? ' ' : '';
-                        parts.push(`#${a}${separator}${nameDisplay} (riabilitato)`);
-                    });
-                }
-
-                if (parts.length > 0) {
-                    if (yPos > 275) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-
-                    const line = `Traguardo ${checkpointNum}: ${parts.join('; ')}`;
-                    const splitText = doc.splitTextToSize(line, 170);
-
-                    splitText.forEach(textLine => {
-                        if (yPos > 275) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(textLine, 20, yPos);
-                        yPos += 6;
-                    });
-                }
-            });
-
-            // Add free point modifications if any
-            if (checkpointData['mod'] && checkpointData['mod'].modifiedPoints.length > 0) {
-                yPos += 4;
+            if (parts.length > 0) {
                 if (yPos > 275) {
                     doc.addPage();
                     yPos = 20;
                 }
-                doc.setFont(undefined, 'bold');
-                doc.text('Modifiche punti liberi:', 20, yPos);
-                yPos += 6;
-                doc.setFont(undefined, 'normal');
 
-                checkpointData['mod'].modifiedPoints.forEach(mod => {
+                const line = `Traguardo ${checkpoint.number}: ${parts.join('; ')}`;
+                const splitText = doc.splitTextToSize(line, 170);
+
+                splitText.forEach(textLine => {
                     if (yPos > 275) {
                         doc.addPage();
                         yPos = 20;
                     }
-                    doc.text(`#${mod.athlete}: ${mod.change} punti`, 25, yPos);
+                    doc.text(textLine, 20, yPos);
                     yPos += 6;
                 });
             }
-        } else {
-            doc.text('Nessun traguardo completato', 20, yPos);
-        }
+        });
     } else {
-        doc.text('Nessuna azione registrata', 20, yPos);
+        doc.text('Nessun traguardo completato', 20, yPos);
     }
 
     // Footer on last page
