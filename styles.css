@@ -1,26 +1,56 @@
 /* ========== CSS VARIABLES - High Contrast Color Scheme ========== */
 :root {
     --color-primary: #0066FF;      /* Blu brillante */
+    --color-primary-hover: #0052CC;
+    --color-primary-active: #003D99;
+
     --color-secondary: #FF6600;    /* Arancione */
+    --color-secondary-hover: #E65C00;
+    --color-secondary-active: #CC5200;
+
     --color-success: #00CC66;      /* Verde acqua */
+    --color-success-hover: #00B359;
+    --color-success-active: #009947;
+
     --color-danger: #FF3366;       /* Rosa-rosso */
+    --color-danger-hover: #E6295A;
+    --color-danger-active: #CC1F4D;
+
     --color-warning: #FFB800;      /* Giallo-arancio */
-    
+    --color-warning-hover: #E6A600;
+    --color-warning-active: #CC9400;
+
+    --color-neutral: #999999;      /* Grigio neutro */
+    --color-neutral-hover: #808080;
+    --color-neutral-active: #666666;
+
     --color-bg-main: #FFFFFF;
     --color-bg-secondary: #F5F5F5;
     --color-bg-dark: #1A1A1A;
-    
+
     --color-text-primary: #1A1A1A;
     --color-text-secondary: #666666;
     --color-text-inverse: #FFFFFF;
-    
+
     --color-border: #DDDDDD;
     --color-border-dark: #333333;
-    
+
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
     --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
     --shadow-lg: 0 8px 16px rgba(0,0,0,0.2);
-    
+
+    /* Box shadows per hover/active sui pulsanti */
+    --shadow-primary: 0 4px 12px rgba(0, 102, 255, 0.4);
+    --shadow-primary-active: 0 2px 6px rgba(0, 102, 255, 0.3);
+    --shadow-success: 0 4px 12px rgba(0, 204, 102, 0.4);
+    --shadow-success-active: 0 2px 6px rgba(0, 204, 102, 0.3);
+    --shadow-danger: 0 4px 12px rgba(255, 51, 102, 0.4);
+    --shadow-danger-active: 0 2px 6px rgba(255, 51, 102, 0.3);
+    --shadow-warning: 0 4px 12px rgba(255, 184, 0, 0.4);
+    --shadow-warning-active: 0 2px 6px rgba(255, 184, 0, 0.3);
+    --shadow-neutral: 0 4px 12px rgba(153, 153, 153, 0.4);
+    --shadow-neutral-active: 0 2px 6px rgba(153, 153, 153, 0.3);
+
     --border-radius: 8px;
     --transition: all 0.2s ease;
 }
@@ -155,8 +185,13 @@ input:focus {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #00B359;
-    box-shadow: var(--shadow-lg);
+    background: var(--color-success-hover);
+    box-shadow: var(--shadow-success);
+}
+
+.btn-primary:active:not(:disabled) {
+    background: var(--color-success-active);
+    box-shadow: var(--shadow-success-active);
 }
 
 /* ========== MAIN RACE SCREEN ========== */
@@ -243,9 +278,29 @@ input:focus {
     color: var(--color-text-inverse);
 }
 
+.btn-start:hover:not(:disabled) {
+    background: var(--color-success-hover);
+    box-shadow: var(--shadow-success);
+}
+
+.btn-start:active:not(:disabled) {
+    background: var(--color-success-active);
+    box-shadow: var(--shadow-success-active);
+}
+
 .btn-end {
     background: var(--color-danger);
     color: var(--color-text-inverse);
+}
+
+.btn-end:hover:not(:disabled) {
+    background: var(--color-danger-hover);
+    box-shadow: var(--shadow-danger);
+}
+
+.btn-end:active:not(:disabled) {
+    background: var(--color-danger-active);
+    box-shadow: var(--shadow-danger-active);
 }
 
 .btn-keyboard {
@@ -253,14 +308,44 @@ input:focus {
     color: var(--color-text-inverse);
 }
 
+.btn-keyboard:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    box-shadow: var(--shadow-primary);
+}
+
+.btn-keyboard:active:not(:disabled) {
+    background: var(--color-primary-active);
+    box-shadow: var(--shadow-primary-active);
+}
+
 .btn-undo {
     background: var(--color-warning);
     color: var(--color-text-primary);
 }
 
+.btn-undo:hover:not(:disabled) {
+    background: var(--color-warning-hover);
+    box-shadow: var(--shadow-warning);
+}
+
+.btn-undo:active:not(:disabled) {
+    background: var(--color-warning-active);
+    box-shadow: var(--shadow-warning-active);
+}
+
 .btn-reset {
     background: var(--color-danger);
     color: var(--color-text-inverse);
+}
+
+.btn-reset:hover:not(:disabled) {
+    background: var(--color-danger-hover);
+    box-shadow: var(--shadow-danger);
+}
+
+.btn-reset:active:not(:disabled) {
+    background: var(--color-danger-active);
+    box-shadow: var(--shadow-danger-active);
 }
 
 /* ========== LAST CHECKPOINT SUMMARY ========== */
@@ -475,6 +560,13 @@ input:focus {
 
 .menu-item:hover:not(:disabled) {
     background: var(--color-bg-secondary);
+    box-shadow: var(--shadow-sm);
+}
+
+.menu-item:active:not(:disabled) {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-primary-active);
 }
 
 .menu-item-icon {
@@ -548,6 +640,14 @@ input:focus {
     background: var(--color-primary);
     color: var(--color-text-inverse);
     border-color: var(--color-primary);
+    box-shadow: var(--shadow-primary);
+}
+
+.submenu-btn:active:not(:disabled) {
+    background: var(--color-primary-active);
+    color: var(--color-text-inverse);
+    border-color: var(--color-primary-active);
+    box-shadow: var(--shadow-primary-active);
 }
 
 .submenu-btn:disabled {
@@ -555,34 +655,43 @@ input:focus {
 }
 
 .submenu-btn-cancel {
-    background: #999999;
+    background: var(--color-neutral);
     color: var(--color-text-inverse);
-    border-color: #999999;
+    border-color: var(--color-neutral);
 }
 
-.submenu-btn-cancel:hover:not(:disabled),
-.submenu-btn-cancel:active:not(:disabled) {
-    background: #FF3366;
-    border-color: #FF3366;
+.submenu-btn-cancel:hover:not(:disabled) {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
     color: var(--color-text-inverse);
+    box-shadow: var(--shadow-danger);
+}
+
+.submenu-btn-cancel:active:not(:disabled) {
+    background: var(--color-danger-active);
+    border-color: var(--color-danger-active);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-danger-active);
 }
 
 .submenu-btn-confirm {
-    background: #0066FF;
+    background: var(--color-primary);
     color: var(--color-text-inverse);
-    border-color: #0066FF;
+    border-color: var(--color-primary);
 }
 
 .submenu-btn-confirm:hover:not(:disabled) {
-    background: #0052CC;
-    border-color: #0052CC;
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
     color: var(--color-text-inverse);
+    box-shadow: var(--shadow-primary);
 }
 
 .submenu-btn-confirm:active:not(:disabled) {
-    background: #003D99;
-    border-color: #003D99;
+    background: var(--color-primary-active);
+    border-color: var(--color-primary-active);
     color: var(--color-text-inverse);
+    box-shadow: var(--shadow-primary-active);
 }
 
 /* ========== KEYBOARD OVERLAY ========== */
@@ -745,12 +854,32 @@ input:focus {
     background: var(--color-primary);
     color: var(--color-text-inverse);
     border-color: var(--color-primary);
+    box-shadow: var(--shadow-primary);
+}
+
+.keyboard-key:active:not(:disabled) {
+    background: var(--color-primary-active);
+    color: var(--color-text-inverse);
+    border-color: var(--color-primary-active);
+    box-shadow: var(--shadow-primary-active);
 }
 
 .keyboard-key.key-clear {
     background: var(--color-danger);
     color: var(--color-text-inverse);
     border-color: var(--color-danger);
+}
+
+.keyboard-key.key-clear:hover:not(:disabled) {
+    background: var(--color-danger-hover);
+    border-color: var(--color-danger-hover);
+    box-shadow: var(--shadow-danger);
+}
+
+.keyboard-key.key-clear:active:not(:disabled) {
+    background: var(--color-danger-active);
+    border-color: var(--color-danger-active);
+    box-shadow: var(--shadow-danger-active);
 }
 
 .keyboard-points {
@@ -791,8 +920,13 @@ input:focus {
 }
 
 .keyboard-points-btn:hover:not(:disabled) {
-    background: #00B359;
-    box-shadow: var(--shadow-md);
+    background: var(--color-success-hover);
+    box-shadow: var(--shadow-success);
+}
+
+.keyboard-points-btn:active:not(:disabled) {
+    background: var(--color-success-active);
+    box-shadow: var(--shadow-success-active);
 }
 
 .keyboard-points-btn:disabled {
