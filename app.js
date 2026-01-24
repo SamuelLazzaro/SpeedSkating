@@ -843,15 +843,18 @@ function handleMenuAction(action) {
 }
 
 function showModifyPointsSubmenu(athleteNumber) {
-    // Remove any existing dynamic submenu (but keep the static assign points section)
-    const existingSubmenu = athleteMenu.querySelector('.submenu:not(#menuAssignPointsSection)');
+    // Remove any existing dynamic submenu (but keep the static sections)
+    const existingSubmenu = athleteMenu.querySelector('.submenu:not(#menuAssignPointsSection):not(#menuEditAthleteSubmenu)');
     if (existingSubmenu) {
         existingSubmenu.remove();
     }
 
-    // Hide the assign points section when showing modify points submenu
+    // Hide the assign points section and edit athlete submenu
     const assignPointsSection = document.getElementById('menuAssignPointsSection');
     assignPointsSection.classList.add('hidden');
+
+    const editAthleteSubmenu = document.getElementById('menuEditAthleteSubmenu');
+    editAthleteSubmenu.classList.add('hidden');
 
     // Create submenu element
     const submenu = document.createElement('div');
@@ -907,6 +910,12 @@ function modifyAthletePointsFree(athleteNumber, pointsChange) {
 function showEditAthleteSubmenu(athleteNumber) {
     const athlete = state.athletes.get(athleteNumber);
     if (!athlete) return;
+
+    // Remove any existing dynamic submenu (modify points submenu)
+    const existingSubmenu = athleteMenu.querySelector('.submenu:not(#menuAssignPointsSection):not(#menuEditAthleteSubmenu)');
+    if (existingSubmenu) {
+        existingSubmenu.remove();
+    }
 
     // Hide all menu items except the submenu
     const menuItems = athleteMenu.querySelectorAll('.menu-item');
@@ -1096,11 +1105,13 @@ function reinstateAthlete(athleteNumber) {
     renderLeaderboard();
 }
 
-// Close menu when clicking outside
-document.addEventListener('click', (e) => {
-    if (!athleteMenu.contains(e.target) && !e.target.closest('.leaderboard-table tbody tr')) {
-        closeAthleteMenu();
+// Close menu when clicking outside (using mousedown to handle text selection properly)
+document.addEventListener('mousedown', (e) => {
+    // Don't close if clicking inside the menu or on a leaderboard row
+    if (e.target.closest('#athleteMenu') || e.target.closest('.leaderboard-table tbody tr')) {
+        return;
     }
+    closeAthleteMenu();
 });
 
 // ========== KEYBOARD OVERLAY ==========
@@ -1129,6 +1140,18 @@ function clearKeyboardInputs() {
     inputAthleteNumber.value = '';
     inputAthleteName.value = '';
     inputAthleteSurname.value = '';
+}
+
+function autoFillAthleteData() {
+    const numberValue = inputAthleteNumber.value.trim();
+
+    const athleteNumber = parseInt(numberValue);
+    const existingAthlete = state.athletes.get(athleteNumber);
+
+    if (existingAthlete) {
+        inputAthleteName.value = existingAthlete.name || '';
+        inputAthleteSurname.value = existingAthlete.surname || '';
+    }
 }
 
 function updateKeyboardPoints() {
@@ -1237,6 +1260,7 @@ document.querySelectorAll('.keyboard-key').forEach(key => {
             inputAthleteNumber.value += value;
         }
 
+        autoFillAthleteData();
         updateKeyboardPointsButtons();
         inputAthleteNumber.focus();
     });
