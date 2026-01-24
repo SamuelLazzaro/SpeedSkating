@@ -1140,17 +1140,47 @@ function clearKeyboardInputs() {
     inputAthleteNumber.value = '';
     inputAthleteName.value = '';
     inputAthleteSurname.value = '';
+    inputAthleteName.disabled = false;
+    inputAthleteSurname.disabled = false;
 }
+
+function setKeyboardKeysEnabled(enabled) {
+    document.querySelectorAll('.keyboard-key').forEach(key => {
+        key.disabled = !enabled;
+    });
+}
+
+// Disable keyboard keys when focus is on name or surname fields
+inputAthleteName.addEventListener('focus', () => setKeyboardKeysEnabled(false));
+inputAthleteSurname.addEventListener('focus', () => setKeyboardKeysEnabled(false));
+inputAthleteName.addEventListener('blur', () => setKeyboardKeysEnabled(true));
+inputAthleteSurname.addEventListener('blur', () => setKeyboardKeysEnabled(true));
 
 function autoFillAthleteData() {
     const numberValue = inputAthleteNumber.value.trim();
+    if (numberValue === '') {
+        inputAthleteName.value = '';
+        inputAthleteSurname.value = '';
+        inputAthleteName.disabled = false;
+        inputAthleteSurname.disabled = false;
+        return;
+    }
 
     const athleteNumber = parseInt(numberValue);
     const existingAthlete = state.athletes.get(athleteNumber);
 
     if (existingAthlete) {
+        // Existing athlete: auto-fill and disable name/surname fields
         inputAthleteName.value = existingAthlete.name || '';
         inputAthleteSurname.value = existingAthlete.surname || '';
+        inputAthleteName.disabled = true;
+        inputAthleteSurname.disabled = true;
+    } else {
+        // New athlete: clear and enable name/surname fields
+        inputAthleteName.value = '';
+        inputAthleteSurname.value = '';
+        inputAthleteName.disabled = false;
+        inputAthleteSurname.disabled = false;
     }
 }
 
@@ -1211,17 +1241,24 @@ inputAthleteNumber.addEventListener('input', (e) => {
     if (!isNaN(athleteNumber) && athleteNumber > 0) {
         const athlete = state.athletes.get(athleteNumber);
         if (athlete) {
+            // Existing athlete: auto-fill and disable name/surname fields
             inputAthleteName.value = athlete.name || '';
             inputAthleteSurname.value = athlete.surname || '';
+            inputAthleteName.disabled = true;
+            inputAthleteSurname.disabled = true;
         } else {
-            // Clear fields if athlete doesn't exist
+            // New athlete: clear and enable name/surname fields
             inputAthleteName.value = '';
             inputAthleteSurname.value = '';
+            inputAthleteName.disabled = false;
+            inputAthleteSurname.disabled = false;
         }
     } else {
-        // Clear fields if number is not valid
+        // Clear and enable fields if number is not valid
         inputAthleteName.value = '';
         inputAthleteSurname.value = '';
+        inputAthleteName.disabled = false;
+        inputAthleteSurname.disabled = false;
     }
 });
 
