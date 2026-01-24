@@ -518,6 +518,23 @@ input:focus {
     gap: 8px;
 }
 
+.submenu-inputs {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.submenu-input {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--color-bg-main);
+}
+
 .submenu-btn {
     padding: 12px;
     background: var(--color-bg-main);
@@ -937,6 +954,12 @@ input:focus {
         min-height: clamp(38px, 5.5vh, 50px);
         max-height: clamp(45px, 7vh, 55px);
         font-size: clamp(20px, 2.5vw, 22px);
+    }
+}
+
+@media (max-width: 640px) {
+    .submenu-inputs {
+        flex-direction: column;
     }
 }
 
