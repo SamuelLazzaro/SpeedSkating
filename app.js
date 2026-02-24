@@ -28,6 +28,9 @@ const state = {
     actionLog: []
 };
 
+// Athletes preloaded from starting list URL
+let preloadedAthletes = [];
+
 // Athlete data structure
 class Athlete {
     constructor(number, name = '', surname = '') {
@@ -113,6 +116,74 @@ toggleButtons.forEach(btn => {
     });
 });
 
+// ========== STARTING LIST FETCH ==========
+async function fetchStartingList(url) {
+    let html;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        html = await response.text();
+    } catch (_) {
+        // Direct fetch failed (likely CORS) — retry via proxy
+        const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+        const proxyResponse = await fetch(proxyUrl);
+        if (!proxyResponse.ok) throw new Error(`HTTP ${proxyResponse.status}`);
+        html = await proxyResponse.text();
+    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const tables = doc.querySelectorAll('table');
+    if (tables.length < 3) throw new Error('Formato non riconosciuto');
+    const athleteTable = tables[2];
+    const athletes = [];
+    for (const row of athleteTable.querySelectorAll('tr')) {
+        const cells = row.querySelectorAll('td');
+        if (cells.length < 3) continue;
+        if (Array.from(cells).some(td => td.textContent.trim() === 'NP')) continue;
+        const num = parseInt(cells[1].textContent.trim(), 10);
+        if (isNaN(num) || num <= 0) continue;
+        const nameParts = cells[2].textContent.trim().split(/\s+/).filter(p => p.length > 0);
+        const name = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+        const surname = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : (nameParts[0] || '');
+        athletes.push({ number: num, name, surname });
+    }
+    return athletes;
+}
+
+document.getElementById('btnLoadAthletes').addEventListener('click', async () => {
+    const url = document.getElementById('startingListUrl').value.trim();
+    const statusEl = document.getElementById('loadAthletesStatus');
+    const btn = document.getElementById('btnLoadAthletes');
+
+    if (!url) {
+        statusEl.textContent = 'Inserisci un URL valido.';
+        statusEl.className = 'load-status load-status-error';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Caricamento...';
+    statusEl.className = 'load-status hidden';
+
+    try {
+        preloadedAthletes = await fetchStartingList(url);
+        if (preloadedAthletes.length === 0) {
+            statusEl.textContent = 'Nessun atleta trovato nel file.';
+            statusEl.className = 'load-status load-status-warning';
+        } else {
+            statusEl.textContent = `✓ ${preloadedAthletes.length} atleti caricati.`;
+            statusEl.className = 'load-status load-status-success';
+        }
+    } catch (_) {
+        preloadedAthletes = [];
+        statusEl.textContent = 'Impossibile caricare gli atleti: errore di rete o CORS. Verifica che l\'URL sia accessibile dal browser.';
+        statusEl.className = 'load-status load-status-error';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Carica';
+    }
+});
+
 // Start configuration
 btnStartConfig.addEventListener('click', () => {
     const laps = parseInt(totalLapsInput.value);
@@ -127,6 +198,14 @@ btnStartConfig.addEventListener('click', () => {
     state.config.totalLaps = laps;
     state.config.pointsFrequency = frequency;
     state.lapsRemaining = laps;
+
+    // Add preloaded athletes from starting list (0 points)
+    for (const data of preloadedAthletes) {
+        if (!state.athletes.has(data.number)) {
+            state.athletes.set(data.number, new Athlete(data.number, data.name, data.surname));
+        }
+    }
+    preloadedAthletes = [];
 
     logAction(`Configurazione: ${laps} giri, Traguardo ${frequency === 'every_lap' ? 'ogni giro' : 'ogni 2 giri'}`);
 

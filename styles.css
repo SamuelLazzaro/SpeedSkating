@@ -173,6 +173,64 @@ input:focus {
     border-color: var(--color-primary);
 }
 
+.url-input-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.url-input-group input {
+    flex: 1;
+    min-width: 0;
+}
+
+.btn-load-athletes {
+    flex-shrink: 0;
+    padding: 12px 20px;
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-load-athletes:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    box-shadow: var(--shadow-primary);
+}
+
+.btn-load-athletes:active:not(:disabled) {
+    background: var(--color-primary-active);
+    box-shadow: var(--shadow-primary-active);
+}
+
+.load-status {
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.load-status-success {
+    background: rgba(0, 204, 102, 0.12);
+    color: #007a3d;
+    border: 1px solid rgba(0, 204, 102, 0.4);
+}
+
+.load-status-error {
+    background: rgba(255, 51, 102, 0.1);
+    color: #cc1f4d;
+    border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+.load-status-warning {
+    background: rgba(255, 184, 0, 0.12);
+    color: #7a5800;
+    border: 1px solid rgba(255, 184, 0, 0.4);
+}
+
 .btn-primary {
     width: 100%;
     padding: 18px;

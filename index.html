@@ -29,6 +29,15 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="startingListUrl">Lista di partenza (opzionale)</label>
+                <div class="url-input-group">
+                    <input type="url" id="startingListUrl" placeholder="https://...">
+                    <button type="button" id="btnLoadAthletes" class="btn-load-athletes">Carica</button>
+                </div>
+                <div id="loadAthletesStatus" class="load-status hidden"></div>
+            </div>
+
             <button type="button" class="btn-primary" id="btnStartConfig">
                 Conferma e vai alla gara
             </button>
