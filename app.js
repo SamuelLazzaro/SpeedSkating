@@ -117,6 +117,22 @@ toggleButtons.forEach(btn => {
 });
 
 // ========== STARTING LIST FETCH ==========
+function parseAthleteTable(table) {
+    const athletes = [];
+    for (const row of table.querySelectorAll('tr')) {
+        const cells = row.querySelectorAll('td');
+        if (cells.length < 3) continue;
+        if (Array.from(cells).some(td => td.textContent.trim() === 'NP')) continue;
+        const num = parseInt(cells[1].textContent.trim(), 10);
+        if (isNaN(num) || num <= 0) continue;
+        const nameParts = cells[2].textContent.trim().split(/\s+/).filter(p => p.length > 0);
+        const name = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+        const surname = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : (nameParts[0] || '');
+        athletes.push({ number: num, name, surname });
+    }
+    return athletes;
+}
+
 async function fetchStartingList(url) {
     let html;
     try {
@@ -134,20 +150,37 @@ async function fetchStartingList(url) {
     const doc = parser.parseFromString(html, 'text/html');
     const tables = doc.querySelectorAll('table');
     if (tables.length < 3) throw new Error('Formato non riconosciuto');
-    const athleteTable = tables[2];
-    const athletes = [];
-    for (const row of athleteTable.querySelectorAll('tr')) {
-        const cells = row.querySelectorAll('td');
-        if (cells.length < 3) continue;
-        if (Array.from(cells).some(td => td.textContent.trim() === 'NP')) continue;
-        const num = parseInt(cells[1].textContent.trim(), 10);
-        if (isNaN(num) || num <= 0) continue;
-        const nameParts = cells[2].textContent.trim().split(/\s+/).filter(p => p.length > 0);
-        const name = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
-        const surname = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : (nameParts[0] || '');
-        athletes.push({ number: num, name, surname });
+    const batteries = [];
+    for (let i = 2; i < tables.length; i++) {
+        const athletes = parseAthleteTable(tables[i]);
+        if (athletes.length > 0) batteries.push(athletes);
     }
-    return athletes;
+    return batteries;
+}
+
+function renderBatterySelector(batteries, statusEl) {
+    preloadedAthletes = [];
+    let html = '<div class="battery-selector-label">Scegli batteria:</div>';
+    html += '<div class="battery-selector-buttons">';
+    batteries.forEach((_, i) => {
+        html += `<button type="button" class="battery-btn" data-index="${i}">${i + 1}</button>`;
+    });
+    html += '</div>';
+    html += '<div class="battery-selector-count hidden" id="batterySelectorCount"></div>';
+    statusEl.innerHTML = html;
+    statusEl.className = 'load-status load-status-info';
+
+    statusEl.querySelectorAll('.battery-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = parseInt(btn.dataset.index);
+            preloadedAthletes = batteries[index];
+            statusEl.querySelectorAll('.battery-btn').forEach(b => b.classList.remove('battery-btn-selected'));
+            btn.classList.add('battery-btn-selected');
+            const countEl = document.getElementById('batterySelectorCount');
+            countEl.textContent = `✓ ${preloadedAthletes.length} atleti caricati.`;
+            countEl.classList.remove('hidden');
+        });
+    });
 }
 
 document.getElementById('btnLoadAthletes').addEventListener('click', async () => {
@@ -164,15 +197,19 @@ document.getElementById('btnLoadAthletes').addEventListener('click', async () =>
     btn.disabled = true;
     btn.textContent = 'Caricamento...';
     statusEl.className = 'load-status hidden';
+    preloadedAthletes = [];
 
     try {
-        preloadedAthletes = await fetchStartingList(url);
-        if (preloadedAthletes.length === 0) {
+        const batteries = await fetchStartingList(url);
+        if (batteries.length === 0) {
             statusEl.textContent = 'Nessun atleta trovato nel file.';
             statusEl.className = 'load-status load-status-warning';
-        } else {
+        } else if (batteries.length === 1) {
+            preloadedAthletes = batteries[0];
             statusEl.textContent = `✓ ${preloadedAthletes.length} atleti caricati.`;
             statusEl.className = 'load-status load-status-success';
+        } else {
+            renderBatterySelector(batteries, statusEl);
         }
     } catch (_) {
         preloadedAthletes = [];
@@ -656,7 +693,10 @@ function renderLeaderboard() {
                 return b.points - a.points;
             }
 
-            // Fourth: if equal points, sort by final checkpoint performance
+            // Fourth: normal athletes at 0 points sort by number ascending
+            if (a.status === 'normal' && a.points === 0) return a.number - b.number;
+
+            // Fifth: if equal points > 0, sort by final checkpoint performance
             const aFinal = getFinalCheckpointPoints(a.number);
             const bFinal = getFinalCheckpointPoints(b.number);
 
@@ -670,7 +710,6 @@ function renderLeaderboard() {
                 return aFinal.order - bFinal.order;
             }
 
-            // No tiebreaker available, keep original order
             return 0;
         });
     
@@ -680,8 +719,8 @@ function renderLeaderboard() {
                 <tr>
                     <th style="width: 60px;">Pos.</th>
                     <th style="width: 80px;">Numero</th>
-                    <th>Nome</th>
                     <th>Cognome</th>
+                    <th>Nome</th>
                     <th style="width: 80px;">Punti</th>
                     <th style="width: 60px;">Stato</th>
                 </tr>
@@ -710,10 +749,10 @@ function renderLeaderboard() {
                     <span class="athlete-number">#${athlete.number}</span>
                 </td>
                 <td>
-                    <span class="athlete-name">${athlete.name || ''}</span>
+                    <span class="athlete-surname">${athlete.surname || ''}</span>
                 </td>
                 <td>
-                    <span class="athlete-surname">${athlete.surname || ''}</span>
+                    <span class="athlete-name">${athlete.name || ''}</span>
                 </td>
                 <td>
                     <span class="athlete-points">${athlete.points}</span>
