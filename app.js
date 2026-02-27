@@ -123,7 +123,9 @@ function parseAthleteTable(table) {
         const cells = row.querySelectorAll('td');
         if (cells.length < 3) continue;
         if (Array.from(cells).some(td => td.textContent.trim() === 'NP')) continue;
-        const num = parseInt(cells[1].textContent.trim(), 10);
+        // Try cells[0] first (e.g. rollergames.it format), fall back to cells[1]
+        let num = parseInt(cells[0].textContent.trim(), 10);
+        if (isNaN(num) || num <= 0) num = parseInt(cells[1].textContent.trim(), 10);
         if (isNaN(num) || num <= 0) continue;
         const nameParts = cells[2].textContent.trim().split(/\s+/).filter(p => p.length > 0);
         const name = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
